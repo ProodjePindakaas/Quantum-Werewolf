@@ -1,6 +1,7 @@
 from os import system
 from quantumwerewolf import Game
 
+
 def ask_yesno(query, yes, no):
     answer = input(query + ' (yes/no) ')
     if answer == 'yes' or answer == 'y':
@@ -17,6 +18,7 @@ def ask_yesno(query, yes, no):
         print('invalid answer')
         ask_yesno(query, yes, no)
 
+
 def ask_player(query):
     answer = input(query + ' Name: ')
     if answer in g.players and g.killed[g.ID(answer)] == 0:
@@ -29,6 +31,7 @@ def ask_player(query):
                 print("    {}".format(p))
 
         return ask_player(query)
+
 
 if __name__ == "__main__":
     g = Game()
@@ -51,7 +54,7 @@ if __name__ == "__main__":
 
     print("Current Players:")
     for i, p in enumerate(g.players):
-        print(" {}: {}".format(i+1,p))
+        print(" {}: {}".format(i+1, p))
 
     # Set the deck
     print("\nPlay with following roles?")
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     def ask_roles():
         # ask for new roles
         g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
-        ask_yesno('Include seer?', set_role('seer',1), set_role('seer',0))
+        ask_yesno('Include seer?', set_role('seer', 1), set_role('seer', 0))
 
     ask_yesno('', "roles confirmed!",  ask_roles)
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
 
     # loop turns for every player
     turn_counter = 0
-    while g.started == True:
+    while g.started:
         turn_counter += 1
         # night
         system('clear')
@@ -106,13 +109,13 @@ if __name__ == "__main__":
 
             # seer
             if player_probabilities['seer'] != 0:
-                target = ask_player('  SEER: Whose role do you inspect?\n   ')
-                g.seer(p,target)
+                target = ask_player('  [SEER] Whose role do you inspect?\n   ')
+                g.seer(p, target)
 
             # werewolf
             if player_probabilities['werewolf'] != 0:
-                target = ask_player('  WEREWOLF: Who do you attack?\n   ')
-                g.werewolf(p,target)
+                target = ask_player('  [WEREWOLF] Who do you attack?\n   ')
+                g.werewolf(p, target)
 
             input("\n(press ENTER to continue)")
 
@@ -135,6 +138,3 @@ if __name__ == "__main__":
         if g.check_win():
             print("Game over")
             break
-
-
-

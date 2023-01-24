@@ -1,11 +1,12 @@
 from itertools import permutations
 from random import shuffle, choice
 
+
 class Game:
 
     def __init__(self):
         self.players = []
-        self.role_count= {'werewolf':2, 'seer':1}
+        self.role_count = {'werewolf': 2, 'seer': 1}
         self.player_count = 10
         self.started = False
 
@@ -23,11 +24,13 @@ class Game:
                 # Check if name is not already taken
                 if name in self.players:
                     print("Player {} already exists!".format(name))
-                else: self.players.append(name)
+                else:
+                    self.players.append(name)
             elif isinstance(name, list):
                 # unwrap list and pass to add_players again
                 self.add_players(*name)
-            else: print("Wrong data type: {}, must be either string or list of strings".format(type(name)))
+            else:
+                print("Wrong data type: {}, must be either string or list of strings".format(type(name)))
 
     # Set the contents of the deck
     def set_role(self, role, amount):
@@ -90,13 +93,13 @@ class Game:
     # Reset the game
     def reset(self):
         self.players = []
-        self.role_count= {'werewolf':2,'seer':1}
-        if self.started == True:
+        self.role_count = {'werewolf': 2, 'seer': 1}
+        if self.started:
             self.stop()
         print("Game reset.")
 
     # Check if game has(n't) started and throw error otherwise
-    def check_started(self, boolean = True):
+    def check_started(self, boolean=True):
         # boolean: set this to false if you want to check if you HAVEN'T started yet
         # The point of this function is to throw an error if the game hasn't started yet
         if self.started == boolean:
@@ -111,12 +114,12 @@ class Game:
 
     # Returns the ID corresponding to someone's name
     def ID(self, player_name):
-        #name: the name of the player
+        # name: the name of the player
         return self.players.index(player_name)
 
     # Returns the ID corresponding to someone's name
     def name(self, player_id):
-        #name: the name of the player
+        # name: the name of the player
         return self.players[player_id]
 
     # Return the role corresponding to some letter
@@ -131,13 +134,14 @@ class Game:
         if self.check_started():
             self.calculate_probabilities()
             print("There are {} possible permutations left.\n".format(self.nperm))
-            print("{:>12s}{:>12s}{:>12s}{:>12s}{:>12s}".format("Player", "Villagers", "Seer", "Werewolf", "Dead"))
+            headers = ["Player", "Villagers", "Seer", "Werewolf", "Dead"]
+            print("{:>12s}{:>12s}{:>12s}{:>12s}{:>12s}".format(*headers))
             for i, j in enumerate(self.print_permutation):
                 p = self.probs[j]
                 if p['dead'] == 1:
                     i = p['name']
-                print("{:>12s}{:11.0f}%{:11.0f}%{:11.0f}%{:11.0f}%".format(str(i), 100*p['villager'], 100*p['seer'], 100*p['werewolf'], 100*p['dead']))
-
+                values = [str(i), 100*p['villager'], 100*p['seer'], 100*p['werewolf'], 100*p['dead']]
+                print("{:>12s}{:11.0f}%{:11.0f}%{:11.0f}%{:11.0f}%".format(*values))
 
     # Calculates the probabilities
     def calculate_probabilities(self):
@@ -150,7 +154,11 @@ class Game:
                 P_seer = transpose[i].count("s") / self.nperm
                 P_werewolf = transpose[i].count("w") / self.nperm
                 P_dead = self.death_probability(p)
-                self.probs.append({'name': p, 'werewolf': P_werewolf, 'villager': P_villager, 'seer': P_seer, 'dead': P_dead})
+                self.probs.append({'name': p,
+                                   'werewolf': P_werewolf,
+                                   'villager': P_villager,
+                                   'seer': P_seer,
+                                   'dead': P_dead})
 
     # Let a player take his seer action
     def seer(self, seer, target):
@@ -167,7 +175,7 @@ class Game:
 
             # Player is allowed to take the action
             print("{} is investigating {} ...".format(seer, target))
-            p_list = [p in self.permutations if p[seer_id] == 's']
+            p_list = [p for p in self.permutations if p[seer_id] == 's']
 
             # Choose an outcome
             assert len(p_list) > 0, "ERROR: seer list is empty"
@@ -207,7 +215,7 @@ class Game:
             if self.role(prole) == "w":
                 self.werewolf_count -= 1
                 for i in range(self.player_count):
-                    deaths[i][target_id] = 0
+                    self.deaths[i][target_id] = 0
 
             self.killed[target_id] = 1
             self.calculate_probabilities()
@@ -262,4 +270,3 @@ class Game:
             print('The werewolves win!')
             return True
         return False
-
