@@ -9,6 +9,7 @@ class Game:
         self.role_count = {'werewolf': 2, 'seer': 1}
         self.player_count = 10
         self.started = False
+        self.verbose = False
 
     # Add players to the game
     def add_players(self, *names):
@@ -23,14 +24,16 @@ class Game:
             if isinstance(name, str):
                 # Check if name is not already taken
                 if name in self.players:
-                    print("Player {} already exists!".format(name))
+                    if sel.verbose:
+                        print("Player {} already exists!".format(name))
                 else:
                     self.players.append(name)
             elif isinstance(name, list):
                 # unwrap list and pass to add_players again
                 self.add_players(*name)
             else:
-                print("Wrong data type: {}, must be either string or list of strings".format(type(name)))
+                if self.verbose:
+                    print("Wrong data type: {}, must be either string or list of strings".format(type(name)))
 
     # Set the contents of the deck
     def set_role(self, role, amount):
@@ -60,7 +63,8 @@ class Game:
             # Determine (valid) amount of villager in the game
             villagers = self.player_count - sum(self.role_count.values())
             if villagers < 0:
-                print("Too few players, decrease the amount of roles!")
+                if self.verbose:
+                    print("Too few players, decrease the amount of roles!")
                 return False
 
             # Sets the list of roles
@@ -78,7 +82,9 @@ class Game:
 
             # start game
             self.started = True
-            print("Game started.")
+
+            if self.verbose:
+                print("Game started.")
 
             self.calculate_probabilities()
 
@@ -88,7 +94,8 @@ class Game:
     def stop(self):
         if self.check_started():
             self.started = False
-            print("Game stopped.")
+            if self.verbose:
+                print("Game stopped.")
 
     # Reset the game
     def reset(self):
@@ -96,7 +103,8 @@ class Game:
         self.role_count = {'werewolf': 2, 'seer': 1}
         if self.started:
             self.stop()
-        print("Game reset.")
+        if self.verbose:
+            print("Game reset.")
 
     # Check if game has(n't) started and throw error otherwise
     def check_started(self, boolean=True):
@@ -106,10 +114,12 @@ class Game:
             return True
         else:
             if boolean:
-                print("Please start the game first with start().")
+                if self.verbose:
+                    print("Please start the game first with start().")
                 return False
             else:
-                print("Please stop the game first with stop().")
+                if self.verbose:
+                    print("Please stop the game first with stop().")
                 return False
 
     # Returns the ID corresponding to someone's name
@@ -174,12 +184,14 @@ class Game:
             assert self.probs[seer_id]['seer'] != 0, "ERROR: in seer() {}'s seer probability is 0.".format(seer)
 
             # Player is allowed to take the action
-            print("{} is investigating {} ...".format(seer, target))
+            if self.verbose:
+                print("{} is investigating {} ...".format(seer, target))
             p_list = [p for p in self.permutations if p[seer_id] == 's']
 
             # Choose an outcome
             assert len(p_list) > 0, "ERROR: seer list is empty"
             observation = choice(p_list)[target_id]
+            target_role = self.role(observation)
 
             # Collapse the wave function
             for p in p_list:
@@ -187,7 +199,10 @@ class Game:
                     self.permutations.remove(p)
 
             # Report on results
-            print("{} sees that {} is a {}!".format(seer, target, self.role(observation)))
+            if self.verbose:
+                print(f"{seer} sees that {target} is a {target_role}!")
+
+            return target_role
 
     # Force someone's death (e.g., after a vote). Otherwise used only by script
     def kill(self, target):
@@ -196,7 +211,8 @@ class Game:
         if self.check_started():
             assert self.killed[target_id] != 1, "ERROR:in kill() target {} is already dead.".format(target)
 
-            print("{} was killed!".format(target))
+            if self.verbose:
+                print("{} was killed!".format(target))
 
             # Chooses an outcome
             res = choice(self.permutations)
@@ -208,8 +224,11 @@ class Game:
                 if p[target_id] != prole:
                     self.permutations.remove(p)
 
+            target_role = self.role(prole)
+
             # Report on results
-            print("{} was a {}!".format(target, self.role(prole)))
+            if self.verbose:
+                print(f"{target} was a {target_role}!")
 
             # Deal with the case that the dead person is a werewolf
             if self.role(prole) == "w":
@@ -219,6 +238,8 @@ class Game:
 
             self.killed[target_id] = 1
             self.calculate_probabilities()
+
+            return target_role
 
     # Shows the probability of death for a player
     def death_probability(self, name):
@@ -251,7 +272,8 @@ class Game:
             assert self.probs[werewolf_id]['werewolf'] != 0, "ERROR: in werewolf() {}'s werewolf probability is 0".format(target)
 
             self.deaths[target_id][werewolf_id] = 1 / self.werewolf_count
-            print("{} has mauled {}!".format(werewolf, target))
+            if self.verbose:
+                print("{} has mauled {}!".format(werewolf, target))
 
     def check_win(self):
         villager_win = True

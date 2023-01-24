@@ -34,6 +34,17 @@ def ask_player(query):
 
 
 if __name__ == "__main__":
+    # Define colors
+    normal = '\033[0;0m'
+    bold = '\033[1m'
+    underline = '\033[4m'
+    red = '\033[0;31m'
+    boldred = '\033[1;31m'
+    pink = '\033[0;35m'
+    boldpink = '\033[1;35m'
+    yellow = '\033[0;33m'
+    boldyellow = '\033[1;33m'
+
     g = Game()
 
     system('clear')
@@ -102,19 +113,20 @@ if __name__ == "__main__":
 
             # display game and player info (role superposition)
             player_probabilities = start_probabilities[i]
-            print('\n  Your role:')
-            print("    Villager: {:3.0f}%".format(100*player_probabilities['villager']))
-            print("    Seer:     {:3.0f}%".format(100*player_probabilities['seer']))
-            print("    werewolf: {:3.0f}%\n".format(100*player_probabilities['werewolf']))
+            print(f'\n  {underline}Your role:{normal}')
+            print(f"    {yellow}Villager: {100*player_probabilities['villager']:3.0f}%")
+            print(f"    {pink}Seer:     {100*player_probabilities['seer']:3.0f}%")
+            print(f"    {red}werewolf: {100*player_probabilities['werewolf']:3.0f}%{normal}")
 
             # seer
             if player_probabilities['seer'] != 0:
-                target = ask_player('  [SEER] Whose role do you inspect?\n   ')
-                g.seer(p, target)
+                target = ask_player(f'\n  {boldpink}[SEER]{normal} Whose role do you inspect?\n   ')
+                target_role = g.seer(p, target)
+                print(f'    {target} is a {target_role}')
 
             # werewolf
             if player_probabilities['werewolf'] != 0:
-                target = ask_player('  [WEREWOLF] Who do you attack?\n   ')
+                target = ask_player(f'\n  {boldred}[WEREWOLF]{normal} Who do you attack?\n   ')
                 g.werewolf(p, target)
 
             input("\n(press ENTER to continue)")
@@ -129,8 +141,9 @@ if __name__ == "__main__":
         g.print_probabilities()
 
         # vote
-        target = ask_player('\nWHOLE VILLAGE: Who do you lynch?\n   ')
-        g.kill(target)
+        target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n')
+        target_role = g.kill(target)
+        print(f'  {target} was a {target_role}')
 
         input('(press ENTER to continue)')
 
