@@ -148,6 +148,7 @@ if __name__ == "__main__":
         input('(press ENTER to continue)')
 
         # check win
-        if g.check_win():
-            print("Game over")
+        win, winners = g.check_win()
+        if win:
+            print(f"\nThe {winners} win!")
             break

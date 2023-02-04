@@ -286,9 +286,11 @@ class Game:
                     else:
                         werewolf_win = False
         if villager_win:
-            print('The villagers win!')
-            return True
+            if self.verbose:
+                print('The villagers win!')
+            return True, 'villagers'
         if werewolf_win:
-            print('The werewolves win!')
-            return True
-        return False
+            if self.verbose:
+                print('The werewolves win!')
+            return True, 'werewolves'
+        return False, None
