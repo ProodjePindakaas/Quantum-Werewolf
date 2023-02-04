@@ -34,6 +34,7 @@ def ask_player(query):
 
 
 if __name__ == "__main__":
+
     # Define colors
     normal = '\033[0;0m'
     bold = '\033[1m'
@@ -102,6 +103,7 @@ if __name__ == "__main__":
         print('Night falls and all players take their actions in turns privately\n')
 
         start_probabilities = g.probs
+        start_other_werewolves = [g.other_werewolves(p) for p in g.players]
 
         for i, p in enumerate(g.players):
             if g.killed[i] == 1:
@@ -113,6 +115,7 @@ if __name__ == "__main__":
 
             # display game and player info (role superposition)
             player_probabilities = start_probabilities[i]
+
             print(f'\n  {underline}Your role:{normal}')
             print(f"    {yellow}Villager: {100*player_probabilities['villager']:3.0f}%")
             print(f"    {pink}    Seer: {100*player_probabilities['seer']:3.0f}%")
@@ -128,7 +131,8 @@ if __name__ == "__main__":
             if player_probabilities['werewolf'] != 0:
                 # print other werewolves
                 print(f'\n  {boldred}[WEREWOLF]{normal} Your fellow werewolves are:')
-                for player in g.other_werewolves(p):
+                player_other_werewolves = start_other_werewolves[i]
+                for player in player_other_werewolves:
                     name = player['name']
                     chance = player['werewolf']
                     if name != p:
