@@ -24,7 +24,7 @@ class Game:
             if isinstance(name, str):
                 # Check if name is not already taken
                 if name in self.players:
-                    if sel.verbose:
+                    if self.verbose:
                         print("Player {} already exists!".format(name))
                 else:
                     self.players.append(name)
