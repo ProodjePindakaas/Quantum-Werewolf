@@ -275,6 +275,21 @@ class Game:
             if self.verbose:
                 print("{} has mauled {}!".format(werewolf, target))
 
+    # Gives the probabilities of all other players being a werewolf
+    def other_werewolves(self, werewolf):
+        werewolf_id = self.ID(werewolf)
+        projection = [p for p in self.permutations if p[werewolf_id] == 'w']
+
+        n_projection = len(projection)
+        transpose = list(zip(*projection))
+
+        probs = []
+        for i, p in enumerate(self.players):
+            P_werewolf = transpose[i].count("w") / n_projection
+            probs.append({'name': p, 'werewolf': P_werewolf})
+
+        return probs
+
     def check_win(self):
         villager_win = True
         werewolf_win = True

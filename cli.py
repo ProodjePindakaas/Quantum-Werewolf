@@ -115,7 +115,7 @@ if __name__ == "__main__":
             player_probabilities = start_probabilities[i]
             print(f'\n  {underline}Your role:{normal}')
             print(f"    {yellow}Villager: {100*player_probabilities['villager']:3.0f}%")
-            print(f"    {pink}Seer:     {100*player_probabilities['seer']:3.0f}%")
+            print(f"    {pink}    Seer: {100*player_probabilities['seer']:3.0f}%")
             print(f"    {red}werewolf: {100*player_probabilities['werewolf']:3.0f}%{normal}")
 
             # seer
@@ -126,6 +126,15 @@ if __name__ == "__main__":
 
             # werewolf
             if player_probabilities['werewolf'] != 0:
+                # print other werewolves
+                print(f'\n  {boldred}[WEREWOLF]{normal} Your fellow werewolves are:')
+                for player in g.other_werewolves(p):
+                    name = player['name']
+                    chance = player['werewolf']
+                    if name != p:
+                        print(f'    {name:>12s}: {100*chance:3.0f}%')
+
+                # do werewolf action
                 target = ask_player(f'\n  {boldred}[WEREWOLF]{normal} Who do you attack?\n   ')
                 g.werewolf(p, target)
 
