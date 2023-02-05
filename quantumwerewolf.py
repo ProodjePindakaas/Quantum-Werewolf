@@ -6,7 +6,10 @@ class Game:
 
     def __init__(self):
         self.players = []
-        self.role_count = {'werewolf': 2, 'seer': 1}
+        self.role_count = {
+            'werewolf': 2,
+            'seer': 1,
+            }
         self.player_count = 10
         self.started = False
         self.verbose = False
@@ -100,7 +103,10 @@ class Game:
     # Reset the game
     def reset(self):
         self.players = []
-        self.role_count = {'werewolf': 2, 'seer': 1}
+        self.role_count = {
+            'werewolf': 2,
+            'seer': 1,
+            }
         if self.started:
             self.stop()
         if self.verbose:
@@ -135,9 +141,12 @@ class Game:
     # Return the role corresponding to some letter
     def role(self, letter):
         # letter: the letter who's corresponding role you want to know
-        roles = ["villager", "werewolf", "seer"]
-        letters = ["v", "w", "s"]
-        return roles[letters.index(letter)]
+        roles = {
+            "v": "villager",
+            "w": "werewolf",
+            "s": "seer",
+            }
+        return roles[letter]
 
     # Gives the table of probabilities
     def print_probabilities(self):
@@ -164,11 +173,13 @@ class Game:
                 P_seer = transpose[i].count("s") / self.nperm
                 P_werewolf = transpose[i].count("w") / self.nperm
                 P_dead = self.death_probability(p)
-                self.probs.append({'name': p,
-                                   'werewolf': P_werewolf,
-                                   'villager': P_villager,
-                                   'seer': P_seer,
-                                   'dead': P_dead})
+                self.probs.append({
+                    'name': p,
+                    'werewolf': P_werewolf,
+                    'villager': P_villager,
+                    'seer': P_seer,
+                    'dead': P_dead,
+                    })
 
     # Let a player take his seer action
     def seer(self, seer, target):
