@@ -45,6 +45,22 @@ if __name__ == "__main__":
     boldpink = '\033[1;35m'
     yellow = '\033[0;33m'
     boldyellow = '\033[1;33m'
+    green = '\033[0;32m'
+    boldgreen = '\033[1;32m'
+
+    role_style = {
+        'villager': yellow,
+        'werewolf': red,
+        'seer': pink,
+        'hunter': green,
+        }
+
+    role_style_bold = {
+        'villager': boldyellow,
+        'werewolf': boldred,
+        'seer': boldpink,
+        'hunter': boldgreen,
+        }
 
     g = Game()
 
@@ -86,6 +102,7 @@ if __name__ == "__main__":
         # ask for new roles
         g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
         ask_yesno('Include seer?', set_role('seer', 1), set_role('seer', 0))
+        ask_yesno('Include hunter?', set_role('hunter', 1), set_role('h', 0))
 
     ask_yesno('', "roles confirmed!",  ask_roles)
 
@@ -117,18 +134,18 @@ if __name__ == "__main__":
             player_probabilities = start_probabilities[i]
 
             print(f'\n  {underline}Your role:{normal}')
-            print(f"    {yellow}Villager: {100*player_probabilities['villager']:3.0f}%")
-            print(f"    {pink}    Seer: {100*player_probabilities['seer']:3.0f}%")
-            print(f"    {red}werewolf: {100*player_probabilities['werewolf']:3.0f}%{normal}")
+            for role in g.used_roles:
+                style = role_style[role]
+                print(f"    {style}{role:>8s}: {100*player_probabilities[role]:3.0f}%{normal}")
 
             # seer
-            if player_probabilities['seer'] != 0:
+            if 'seer' in g.used_roles and player_probabilities['seer'] != 0:
                 target = ask_player(f'\n  {boldpink}[SEER]{normal} Whose role do you inspect?\n   ')
                 target_role = g.seer(p, target)
                 print(f'    {target} is a {target_role}')
 
             # werewolf
-            if player_probabilities['werewolf'] != 0:
+            if 'werewolf' in g.used_roles and player_probabilities['werewolf'] != 0:
                 # print other werewolves
                 print(f'\n  {boldred}[WEREWOLF]{normal} Your fellow werewolves are:')
                 player_other_werewolves = start_other_werewolves[i]
@@ -150,6 +167,10 @@ if __name__ == "__main__":
         input('All player have had their turn (press ENTER to continue)')
         system('clear')
         print('The day begins')
+
+        # TODO CHECK DEATHS
+        # check who died since last check
+        # kill() those players
 
         g.print_probabilities()
 
