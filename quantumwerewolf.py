@@ -142,39 +142,6 @@ class Game:
         # name: the name of the player
         return self.players[player_id]
 
-    # Return the role corresponding to some letter
-    # def role(self, letter):
-    #     # letter: the letter who's corresponding role you want to know
-    #     roles = {
-    #         "v": "villager",
-    #         "w": "werewolf",
-    #         "s": "seer",
-    #         "h": "hunter",
-    #         }
-    #     return roles[letter]
-
-    # Gives the table of probabilities
-    def print_probabilities(self):
-        if self.check_started():
-            self.calculate_probabilities()
-            print("There are {} possible permutations left.\n".format(self.nperm))
-
-            header_line = f"{'player':>12s}"
-            for role in self.used_roles:
-                header_line += f"{role:>12s}"
-            header_line += f"{'dead':>12s}"
-            print(header_line)
-
-            for name, j in enumerate(self.print_permutation):
-                p = self.probs[j]
-                if p['dead'] == 1:
-                    name = p['name']
-                line = f"{str(name):>12s}"
-                for role in self.used_roles:
-                    line += f"{100*p[role]:11.0f}%"
-                line += f"{100*p['dead']:11.0f}%"
-                print(line)
-
     # Calculates the probabilities
     def calculate_probabilities(self):
         if self.check_started():
@@ -257,6 +224,20 @@ class Game:
 
             return target_role
 
+    # Checks for players that were killed during last turn
+    def check_deaths(self):
+        killed_players = []
+        for player_id, player in enumerate(self.players):
+            p_dead = 0
+            for p in self.permutations:
+                for i in range(self.player_count):
+                    if p[i] == "werewolf" and p[player_id] != "werewolf":
+                        p_dead += self.deaths[player_id][i]
+            p_dead /= len(self.permutations)
+            if self.killed[player_id] == 0 and p_dead >= 1:
+                killed_players.append(player)
+        return killed_players
+
     # Shows the probability of death for a player
     def death_probability(self, name):
         # name: name of player
@@ -272,8 +253,6 @@ class Game:
                         if p[i] == "werewolf" and p[name_id] != "werewolf":
                             deathn += self.deaths[name_id][i]
                 dead = deathn / len(self.permutations)
-                if dead >= 1:
-                    self.kill(name)
             return dead
 
     # Lets someone commit their werewolf action
@@ -319,6 +298,7 @@ class Game:
                         villager_win = False
                     else:
                         werewolf_win = False
+
         if villager_win:
             if self.verbose:
                 print('The villagers win!')
