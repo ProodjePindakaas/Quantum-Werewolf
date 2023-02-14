@@ -9,6 +9,7 @@ class Game:
         self.role_count = {
             'werewolf': 2,
             'seer': 1,
+            'hunter': 0,
             }
         self.player_count = 10
         self.started = False
@@ -64,17 +65,19 @@ class Game:
             shuffle(self.print_permutation)
 
             # Determine (valid) amount of villager in the game
-            villagers = self.player_count - sum(self.role_count.values())
-            if villagers < 0:
+            villager_count = self.player_count - sum(self.role_count.values())
+            if villager_count < 0:
                 if self.verbose:
                     print("Too few players, decrease the amount of roles!")
                 return False
+            self.role_count['villager'] = villager_count
 
             # Sets the list of roles
-            roles = self.role_count['werewolf'] * ["w"] + self.role_count['seer'] * ["s"] + villagers * ["v"]
+            self.used_roles = [role for role, count in self.role_count.items() if count > 0]
             self.werewolf_count = self.role_count['werewolf']
 
             # Generates the list of all role permutations
+            roles = [role for role, count in self.role_count.items() for _ in range(count)]
             self.permutations = list(permutations(roles))
 
             # Set all players to be fully alive
@@ -106,6 +109,7 @@ class Game:
         self.role_count = {
             'werewolf': 2,
             'seer': 1,
+            'hunter': 0,
             }
         if self.started:
             self.stop()
@@ -138,30 +142,6 @@ class Game:
         # name: the name of the player
         return self.players[player_id]
 
-    # Return the role corresponding to some letter
-    def role(self, letter):
-        # letter: the letter who's corresponding role you want to know
-        roles = {
-            "v": "villager",
-            "w": "werewolf",
-            "s": "seer",
-            }
-        return roles[letter]
-
-    # Gives the table of probabilities
-    def print_probabilities(self):
-        if self.check_started():
-            self.calculate_probabilities()
-            print("There are {} possible permutations left.\n".format(self.nperm))
-            headers = ["Player", "Villagers", "Seer", "Werewolf", "Dead"]
-            print("{:>12s}{:>12s}{:>12s}{:>12s}{:>12s}".format(*headers))
-            for i, j in enumerate(self.print_permutation):
-                p = self.probs[j]
-                if p['dead'] == 1:
-                    i = p['name']
-                values = [str(i), 100*p['villager'], 100*p['seer'], 100*p['werewolf'], 100*p['dead']]
-                print("{:>12s}{:11.0f}%{:11.0f}%{:11.0f}%{:11.0f}%".format(*values))
-
     # Calculates the probabilities
     def calculate_probabilities(self):
         if self.check_started():
@@ -169,17 +149,12 @@ class Game:
             transpose = list(zip(*self.permutations))
             self.probs = []
             for i, p in enumerate(self.players):
-                P_villager = transpose[i].count("v") / self.nperm
-                P_seer = transpose[i].count("s") / self.nperm
-                P_werewolf = transpose[i].count("w") / self.nperm
-                P_dead = self.death_probability(p)
-                self.probs.append({
-                    'name': p,
-                    'werewolf': P_werewolf,
-                    'villager': P_villager,
-                    'seer': P_seer,
-                    'dead': P_dead,
-                    })
+                player_probs = {'name': p}
+                for role in self.used_roles:
+                    player_probs[role] = transpose[i].count(role) / self.nperm
+                player_probs['dead'] = self.death_probability(p)
+                self.probs.append(player_probs)
+            return self.probs
 
     # Let a player take his seer action
     def seer(self, seer, target):
@@ -197,16 +172,15 @@ class Game:
             # Player is allowed to take the action
             if self.verbose:
                 print("{} is investigating {} ...".format(seer, target))
-            p_list = [p for p in self.permutations if p[seer_id] == 's']
+            p_list = [p for p in self.permutations if p[seer_id] == 'seer']
 
             # Choose an outcome
             assert len(p_list) > 0, "ERROR: seer list is empty"
-            observation = choice(p_list)[target_id]
-            target_role = self.role(observation)
+            target_role = choice(p_list)[target_id]
 
             # Collapse the wave function
             for p in p_list:
-                if p[target_id] != observation:
+                if p[target_id] != target_role:
                     self.permutations.remove(p)
 
             # Report on results
@@ -226,23 +200,21 @@ class Game:
                 print("{} was killed!".format(target))
 
             # Chooses an outcome
-            res = choice(self.permutations)
-            prole = res[target_id]
+            result = choice(self.permutations)
+            target_role = result[target_id]
             permt = list(self.permutations)
 
             # Collapse the wave function
             for p in permt:
-                if p[target_id] != prole:
+                if p[target_id] != target_role:
                     self.permutations.remove(p)
-
-            target_role = self.role(prole)
 
             # Report on results
             if self.verbose:
                 print(f"{target} was a {target_role}!")
 
             # Deal with the case that the dead person is a werewolf
-            if self.role(prole) == "w":
+            if target_role == "werewolf":
                 self.werewolf_count -= 1
                 for i in range(self.player_count):
                     self.deaths[i][target_id] = 0
@@ -251,6 +223,20 @@ class Game:
             self.calculate_probabilities()
 
             return target_role
+
+    # Checks for players that were killed during last turn
+    def check_deaths(self):
+        killed_players = []
+        for player_id, player in enumerate(self.players):
+            p_dead = 0
+            for p in self.permutations:
+                for i in range(self.player_count):
+                    if p[i] == "werewolf" and p[player_id] != "werewolf":
+                        p_dead += self.deaths[player_id][i]
+            p_dead /= len(self.permutations)
+            if self.killed[player_id] == 0 and p_dead >= 1:
+                killed_players.append(player)
+        return killed_players
 
     # Shows the probability of death for a player
     def death_probability(self, name):
@@ -264,11 +250,9 @@ class Game:
                 deathn = 0
                 for p in self.permutations:
                     for i in range(self.player_count):
-                        if p[i] == "w" and p[name_id] != "w":
+                        if p[i] == "werewolf" and p[name_id] != "werewolf":
                             deathn += self.deaths[name_id][i]
                 dead = deathn / len(self.permutations)
-                if dead >= 1:
-                    self.kill(name)
             return dead
 
     # Lets someone commit their werewolf action
@@ -289,14 +273,17 @@ class Game:
     # Gives the probabilities of all other players being a werewolf
     def other_werewolves(self, werewolf):
         werewolf_id = self.ID(werewolf)
-        projection = [p for p in self.permutations if p[werewolf_id] == 'w']
+        projection = [p for p in self.permutations if p[werewolf_id] == 'werewolf']
+
+        if not projection:
+            return []
 
         n_projection = len(projection)
         transpose = list(zip(*projection))
 
         probs = []
         for i, p in enumerate(self.players):
-            P_werewolf = transpose[i].count("w") / n_projection
+            P_werewolf = transpose[i].count("werewolf") / n_projection
             probs.append({'name': p, 'werewolf': P_werewolf})
 
         return probs
@@ -307,10 +294,11 @@ class Game:
         for perm in self.permutations:
             for ID, role in enumerate(perm):
                 if self.killed[ID] == 0:
-                    if role == 'w':
+                    if role == 'werewolf':
                         villager_win = False
                     else:
                         werewolf_win = False
+
         if villager_win:
             if self.verbose:
                 print('The villagers win!')

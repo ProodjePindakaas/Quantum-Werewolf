@@ -20,7 +20,7 @@ def ask_yesno(query, yes, no):
 
 
 def ask_player(query):
-    answer = input(query + ' Name: ')
+    answer = input(query + 'Name: ')
     if answer in g.players and g.killed[g.ID(answer)] == 0:
         return answer
     else:
@@ -31,6 +31,27 @@ def ask_player(query):
                 print("    {}".format(p))
 
         return ask_player(query)
+
+
+# Gives the table of probabilities
+def print_probabilities():
+    probabilities = g.calculate_probabilities()
+
+    header_line = f"{'player':>12s}"
+    for role in g.used_roles:
+        header_line += f"{role:>12s}"
+    header_line += f"{'dead':>12s}"
+    print(header_line)
+
+    for name, j in enumerate(g.print_permutation):
+        p = probabilities[j]
+        if p['dead'] == 1:
+            name = p['name']
+        line = f"{str(name):>12s}"
+        for role in g.used_roles:
+            line += f"{100*p[role]:11.0f}%"
+        line += f"{100*p['dead']:11.0f}%"
+        print(line)
 
 
 if __name__ == "__main__":
@@ -45,6 +66,22 @@ if __name__ == "__main__":
     boldpink = '\033[1;35m'
     yellow = '\033[0;33m'
     boldyellow = '\033[1;33m'
+    green = '\033[0;32m'
+    boldgreen = '\033[1;32m'
+
+    role_style = {
+        'villager': yellow,
+        'werewolf': red,
+        'seer': pink,
+        'hunter': green,
+        }
+
+    role_style_bold = {
+        'villager': boldyellow,
+        'werewolf': boldred,
+        'seer': boldpink,
+        'hunter': boldgreen,
+        }
 
     g = Game()
 
@@ -86,6 +123,7 @@ if __name__ == "__main__":
         # ask for new roles
         g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
         ask_yesno('Include seer?', set_role('seer', 1), set_role('seer', 0))
+        ask_yesno('Include hunter?', set_role('hunter', 1), set_role('h', 0))
 
     ask_yesno('', "roles confirmed!",  ask_roles)
 
@@ -117,18 +155,18 @@ if __name__ == "__main__":
             player_probabilities = start_probabilities[i]
 
             print(f'\n  {underline}Your role:{normal}')
-            print(f"    {yellow}Villager: {100*player_probabilities['villager']:3.0f}%")
-            print(f"    {pink}    Seer: {100*player_probabilities['seer']:3.0f}%")
-            print(f"    {red}werewolf: {100*player_probabilities['werewolf']:3.0f}%{normal}")
+            for role in g.used_roles:
+                style = role_style[role]
+                print(f"    {style}{role:>8s}: {100*player_probabilities[role]:3.0f}%{normal}")
 
             # seer
-            if player_probabilities['seer'] != 0:
-                target = ask_player(f'\n  {boldpink}[SEER]{normal} Whose role do you inspect?\n   ')
+            if 'seer' in g.used_roles and player_probabilities['seer'] != 0:
+                target = ask_player(f'\n  {boldpink}[SEER]{normal} Whose role do you inspect?\n    ')
                 target_role = g.seer(p, target)
                 print(f'    {target} is a {target_role}')
 
             # werewolf
-            if player_probabilities['werewolf'] != 0:
+            if 'werewolf' in g.used_roles and player_probabilities['werewolf'] != 0:
                 # print other werewolves
                 print(f'\n  {boldred}[WEREWOLF]{normal} Your fellow werewolves are:')
                 player_other_werewolves = start_other_werewolves[i]
@@ -139,7 +177,7 @@ if __name__ == "__main__":
                         print(f'    {name:>12s}: {100*chance:3.0f}%')
 
                 # do werewolf action
-                target = ask_player(f'\n  {boldred}[WEREWOLF]{normal} Who do you attack?\n   ')
+                target = ask_player(f'\n  {boldred}[WEREWOLF]{normal} Who do you attack?\n    ')
                 g.werewolf(p, target)
 
             input("\n(press ENTER to continue)")
@@ -151,16 +189,42 @@ if __name__ == "__main__":
         system('clear')
         print('The day begins')
 
-        g.print_probabilities()
+        # check who died since last check
+        killed_players = g.check_deaths()
+
+        # kill all players
+        for player in killed_players:
+            player_role = g.kill(player)
+            print(f'  {player} was killed during the night')
+            print(f'    {player} was a {player_role}')
+            if player_role == 'hunter':
+                print(f'  {player} must now kill another player')
+                hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
+                hunter_target_role = g.kill(hunter_target)
+                print(f'  {hunter_target} was a {hunter_target_role}')
+
+        # check win before the vote
+        win, winners = g.check_win()
+        if win:
+            print(f"\nThe {winners} win!")
+            break
+
+        # Show current game state
+        print_probabilities()
 
         # vote
-        target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n')
-        target_role = g.kill(target)
-        print(f'  {target} was a {target_role}')
+        lynch_target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n    ')
+        lynch_target_role = g.kill(lynch_target)
+        print(f'  {lynch_target} was a {lynch_target_role}')
+        if lynch_target_role == 'hunter':
+            print(f'  {lynch_target} must now kill another player')
+            hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {lynch_target}, who do you shoot?\n    ')
+            hunter_target_role = g.kill(hunter_target)
+            print(f'  {hunter_target} was a {hunter_target_role}')
 
         input('(press ENTER to continue)')
 
-        # check win
+        # check win after the vote
         win, winners = g.check_win()
         if win:
             print(f"\nThe {winners} win!")
