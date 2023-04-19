@@ -10,6 +10,7 @@ class Game:
             'werewolf': 2,
             'seer': 1,
             'hunter': 0,
+            'cupid': 0,
             }
         self.player_count = 10
         self.started = False
@@ -86,6 +87,9 @@ class Game:
                 self.deaths += [[0] * self.player_count]
             self.killed = [0] * self.player_count
 
+            # create list of cupid lovers
+            self.lovers_list = {}
+
             # start game
             self.started = True
 
@@ -156,7 +160,14 @@ class Game:
                 self.probs.append(player_probs)
             return self.probs
 
-    # Let a player take his seer action
+    # Let a player take their cupid action
+    def cupid(self, cupid, lover1, lover2):
+        if self.check_started():
+            cupid_id = self.ID(cupid)
+            lovers = (self.ID(lover1), self.ID(lover2))
+            self.lovers_list[cupid_id] = lovers
+
+    # Let a player take their seer action
     def seer(self, seer, target):
         # seer: name of the seer
         # target: name of the target of the seer

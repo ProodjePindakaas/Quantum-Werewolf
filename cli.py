@@ -19,18 +19,20 @@ def ask_yesno(query, yes, no):
         ask_yesno(query, yes, no)
 
 
-def ask_player(query):
+def ask_player(query, valid_players=None):
     answer = input(query + 'Name: ')
-    if answer in g.players and g.killed[g.ID(answer)] == 0:
+    if valid_players is None:
+        valid_players = g.players
+    if answer in valid_players and g.killed[g.ID(answer)] == 0:
         return answer
     else:
-        print('  "{}" is not a living player'.format(answer))
-        print('  Players alive are:')
-        for i, p in enumerate(g.players):
+        print('  "{}" is not a valid choice'.format(answer))
+        print('  Valid players are:')
+        for i, p in enumerate(valid_players):
             if g.killed[i] == 0:
                 print("    {}".format(p))
 
-        return ask_player(query)
+        return ask_player(query, valid_players=valid_players)
 
 
 # Gives the table of probabilities
@@ -68,12 +70,15 @@ if __name__ == "__main__":
     boldyellow = '\033[1;33m'
     green = '\033[0;32m'
     boldgreen = '\033[1;32m'
+    blue = '\033[0;34m'
+    boldblue = '\033[1;34m'
 
     role_style = {
         'villager': yellow,
         'werewolf': red,
         'seer': pink,
         'hunter': green,
+        'cupid': blue,
         }
 
     role_style_bold = {
@@ -81,6 +86,15 @@ if __name__ == "__main__":
         'werewolf': boldred,
         'seer': boldpink,
         'hunter': boldgreen,
+        'cupid': boldblue,
+        }
+
+    role_preposition = {
+        'villager': 'a ',
+        'werewolf': 'a ',
+        'seer': 'the ',
+        'hunter': 'the ',
+        'cupid': '',
         }
 
     g = Game()
@@ -121,9 +135,11 @@ if __name__ == "__main__":
 
     def ask_roles():
         # ask for new roles
-        g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
-        ask_yesno('Include seer?', set_role('seer', 1), set_role('seer', 0))
-        ask_yesno('Include hunter?', set_role('hunter', 1), set_role('h', 0))
+        for role in g.role_count.keys():
+            if role == 'werewolf':
+                g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
+            else:
+                ask_yesno(f'Include {role}?', set_role(role, 1), set_role(role, 0))
 
     ask_yesno('', "roles confirmed!",  ask_roles)
 
@@ -159,11 +175,21 @@ if __name__ == "__main__":
                 style = role_style[role]
                 print(f"    {style}{role:>8s}: {100*player_probabilities[role]:3.0f}%{normal}")
 
+            # cupid
+            if turn_counter == 1 and 'cupid' in g.used_roles and player_probabilities['cupid'] != 0:
+                valid_lovers = g.players.copy()
+                valid_lovers.remove(p)
+                first_lover = ask_player(f'\n  {boldblue}[CUPID]{normal} Who do you choose as first lover?\n    ', valid_players=valid_lovers)
+                valid_lovers.remove(first_lover)
+                second_lover = ask_player(f'  {boldblue}[CUPID]{normal} Who do you choose as second lover?\n    ', valid_players=valid_lovers)
+                g.cupid(p, first_lover, second_lover)
+                print(f'    {first_lover} and {second_lover} are now lovers')
+
             # seer
             if 'seer' in g.used_roles and player_probabilities['seer'] != 0:
                 target = ask_player(f'\n  {boldpink}[SEER]{normal} Whose role do you inspect?\n    ')
                 target_role = g.seer(p, target)
-                print(f'    {target} is a {target_role}')
+                print(f'    {target} is {role_preposition[target_role]}{target_role}')
 
             # werewolf
             if 'werewolf' in g.used_roles and player_probabilities['werewolf'] != 0:
@@ -196,12 +222,12 @@ if __name__ == "__main__":
         for player in killed_players:
             player_role = g.kill(player)
             print(f'  {player} was killed during the night')
-            print(f'    {player} was a {player_role}')
+            print(f'    {player} was {role_preposition[player_role]}{player_role}')
             if player_role == 'hunter':
                 print(f'  {player} must now kill another player')
                 hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
                 hunter_target_role = g.kill(hunter_target)
-                print(f'  {hunter_target} was a {hunter_target_role}')
+                print(f'  {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
 
         # check win before the vote
         win, winners = g.check_win()
@@ -215,12 +241,12 @@ if __name__ == "__main__":
         # vote
         lynch_target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n    ')
         lynch_target_role = g.kill(lynch_target)
-        print(f'  {lynch_target} was a {lynch_target_role}')
+        print(f'  {lynch_target} was {role_preposition[lynch_target_role]}{lynch_target_role}')
         if lynch_target_role == 'hunter':
             print(f'  {lynch_target} must now kill another player')
             hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {lynch_target}, who do you shoot?\n    ')
             hunter_target_role = g.kill(hunter_target)
-            print(f'  {hunter_target} was a {hunter_target_role}')
+            print(f'  {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
 
         input('(press ENTER to continue)')
 
