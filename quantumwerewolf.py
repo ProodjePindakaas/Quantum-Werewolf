@@ -239,12 +239,7 @@ class Game:
     def check_deaths(self):
         killed_players = []
         for player_id, player in enumerate(self.players):
-            p_dead = 0
-            for p in self.permutations:
-                for i in range(self.player_count):
-                    if p[i] == "werewolf" and p[player_id] != "werewolf":
-                        p_dead += self.deaths[player_id][i]
-            p_dead /= len(self.permutations)
+            p_dead = self.death_probability(player)
             if self.killed[player_id] == 0 and p_dead >= 1:
                 killed_players.append(player)
         return killed_players
@@ -253,15 +248,14 @@ class Game:
     def death_probability(self, name):
         # name: name of player
         name_id = self.ID(name)
-        if self.check_started():
-            P_dead = 0
-            if self.killed[name_id] == 1:
-                P_dead = 1
-            else:
-                total_attacks = 0
-                for p in self.permutations:
-                    # check for lover in permutation
-                    lover_id = None
+        if self.killed[name_id] == 1:
+            P_dead = 1
+        else:
+            total_attacks = 0
+            for p in self.permutations:
+                # check for lover in permutation
+                lover_id = None
+                if 'cupid' in p:
                     cupid_id = p.index('cupid')
                     if cupid_id in self.lovers_list:
                         lover1, lover2 = self.lovers_list[cupid_id]
@@ -270,24 +264,23 @@ class Game:
                         elif name_id == lover2:
                             lover_id = lover1
 
-                    werewolf_attacks = 0
-                    # count attacks by werewolves in this permutation
+                werewolf_attacks = 0
+                # count attacks by werewolves in this permutation
+                for i in range(self.player_count):
+                    if p[i] == "werewolf" and p[name_id] != "werewolf":
+                        werewolf_attacks += self.deaths[name_id][i]
+
+                lover_werewolf_attacks = 0
+                # count attacks by werewolves on lover in this permutation
+                if lover_id is not None:
                     for i in range(self.player_count):
-                        if p[i] == "werewolf" and p[name_id] != "werewolf":
-                            werewolf_attacks += self.deaths[name_id][i]
+                        if p[i] == "werewolf" and p[lover_id] != "werewolf":
+                            lover_werewolf_attacks += self.deaths[lover_id][i]
 
-                    lover_werewolf_attacks = 0
-                    # count attacks by werewolves on lover in this permutation
-                    if lover_id is not None:
-                        for i in range(self.player_count):
-                            if p[i] == "werewolf" and p[lover_id] != "werewolf":
-                                lover_werewolf_attacks += self.deaths[lover_id][i]
+                total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
 
-                    total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
-
-                P_dead = total_attacks / len(self.permutations)
-
-            return P_dead
+            P_dead = total_attacks / len(self.permutations)
+        return P_dead
 
     # Lets someone commit their werewolf action
     def werewolf(self, werewolf, target):
