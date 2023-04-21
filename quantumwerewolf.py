@@ -315,17 +315,31 @@ class Game:
 
         return probs
 
+
     def check_win(self):
+        all_dead = True
         villager_win = True
         werewolf_win = True
+        lover_win = True
         for perm in self.permutations:
+            lovers = ()
+            if 'cupid' in perm:
+                cupid_id = perm.index('cupid')
+                lovers = self.lovers_list[cupid_id]
             for ID, role in enumerate(perm):
                 if self.killed[ID] == 0:
+                    all_dead = False
                     if role == 'werewolf':
                         villager_win = False
                     else:
                         werewolf_win = False
+                    if ID not in lovers:
+                        lover_win = False
 
+        if all_dead:
+            if self.verbose:
+                print('It is a tie!')
+            return True, 'noone'
         if villager_win:
             if self.verbose:
                 print('The villagers win!')
@@ -334,4 +348,8 @@ class Game:
             if self.verbose:
                 print('The werewolves win!')
             return True, 'werewolves'
+        if lover_win:
+            if self.verbose:
+                print('The lovers win!')
+            return True, 'lovers'
         return False, None

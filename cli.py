@@ -19,10 +19,11 @@ def ask_yesno(query, yes, no):
         ask_yesno(query, yes, no)
 
 
-def ask_player(query, valid_players=None):
+def ask_player(query, invalid_players=[]):
     answer = input(query + 'Name: ')
-    if valid_players is None:
-        valid_players = g.players
+    valid_players = g.players.copy()
+    for player in invalid_players:
+        valid_players.remove(player)
     if answer in valid_players and g.killed[g.ID(answer)] == 0:
         return answer
     else:
@@ -32,7 +33,7 @@ def ask_player(query, valid_players=None):
             if g.killed[i] == 0:
                 print("    {}".format(p))
 
-        return ask_player(query, valid_players=valid_players)
+        return ask_player(query, invalid_players=invalid_players)
 
 
 # Gives the table of probabilities
@@ -177,11 +178,8 @@ if __name__ == "__main__":
 
             # cupid
             if turn_counter == 1 and 'cupid' in g.used_roles and player_probabilities['cupid'] != 0:
-                valid_lovers = g.players.copy()
-                valid_lovers.remove(p)
-                first_lover = ask_player(f'\n  {boldblue}[CUPID]{normal} Who do you choose as first lover?\n    ', valid_players=valid_lovers)
-                valid_lovers.remove(first_lover)
-                second_lover = ask_player(f'  {boldblue}[CUPID]{normal} Who do you choose as second lover?\n    ', valid_players=valid_lovers)
+                first_lover = ask_player(f'\n  {boldblue}[CUPID]{normal} Who do you choose as first lover?\n    ')
+                second_lover = ask_player(f'  {boldblue}[CUPID]{normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
                 g.cupid(p, first_lover, second_lover)
                 print(f'    {first_lover} and {second_lover} are now lovers')
 
