@@ -159,6 +159,8 @@ if __name__ == "__main__":
 
         start_probabilities = g.probs
         start_other_werewolves = [g.other_werewolves(p) for p in g.players]
+        if turn_counter > 1:
+            start_other_lover = [g.other_lover(p) for p in g.players]
 
         for i, p in enumerate(g.players):
             if g.killed[i] == 1:
@@ -177,11 +179,21 @@ if __name__ == "__main__":
                 print(f"    {style}{role:>8s}: {100*player_probabilities[role]:3.0f}%{normal}")
 
             # cupid
-            if turn_counter == 1 and 'cupid' in g.used_roles and player_probabilities['cupid'] != 0:
-                first_lover = ask_player(f'\n  {boldblue}[CUPID]{normal} Who do you choose as first lover?\n    ')
-                second_lover = ask_player(f'  {boldblue}[CUPID]{normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
-                g.cupid(p, first_lover, second_lover)
-                print(f'    {first_lover} and {second_lover} are now lovers')
+            if 'cupid' in g.used_roles:
+                if turn_counter == 1 and 'cupid' and player_probabilities['cupid'] != 0:
+                    first_lover = ask_player(f'\n  {boldblue}[CUPID]{normal} Who do you choose as first lover?\n    ')
+                    second_lover = ask_player(f'  {boldblue}[CUPID]{normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
+                    g.cupid(p, first_lover, second_lover)
+                    print(f'    {first_lover} and {second_lover} are now lovers')
+                else:
+                    # print lover probabilities
+                    print(f'\n  {boldblue}[CUPID]{normal} Your lover is:')
+                    player_other_lover = start_other_lover[i]
+                    for player in player_other_lover:
+                        name = player['name']
+                        chance = player['lover']
+                        if name != p:
+                            print(f'    {name:>12s}: {100*chance:3.0f}%')
 
             # seer
             if 'seer' in g.used_roles and player_probabilities['seer'] != 0:

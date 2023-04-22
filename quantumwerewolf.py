@@ -315,6 +315,26 @@ class Game:
 
         return probs
 
+    # Gives the probabilities of all players being your lover
+    def other_lover(self, player):
+        player_id = self.ID(player)
+
+        lover_count_list = [0] * self.player_count
+        for p in self.permutations:
+            if 'cupid' in p:
+                cupid_id = p.index('cupid')
+                lover1, lover2 = self.lovers_list[cupid_id]
+                if player_id == lover1:
+                    lover_count_list[lover2] += 1
+                elif player_id == lover2:
+                    lover_count_list[lover1] += 1
+
+        probs = []
+        for i, p in enumerate(self.players):
+            P_lover = lover_count_list[i] / len(self.permutations)
+            probs.append({'name': p, 'lover': P_lover})
+
+        return probs
 
     def check_win(self):
         all_dead = True
