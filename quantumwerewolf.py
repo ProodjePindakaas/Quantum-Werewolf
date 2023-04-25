@@ -244,7 +244,7 @@ class Game:
                 killed_players.append(player)
         return killed_players
 
-    # Shows the probability of death for a player
+    # Shows the probability of death for a player TODO: rwerite into separate werewolf attack counting function
     def death_probability(self, name):
         # name: name of player
         name_id = self.ID(name)
@@ -273,9 +273,12 @@ class Game:
                 lover_werewolf_attacks = 0
                 # count attacks by werewolves on lover in this permutation
                 if lover_id is not None:
-                    for i in range(self.player_count):
-                        if p[i] == "werewolf" and p[lover_id] != "werewolf":
-                            lover_werewolf_attacks += self.deaths[lover_id][i]
+                    if self.killed[lover_id] == 1:
+                        lover_werewolf_attacks = 1  # TODO: rename this as it also checks if lover is killed by other means
+                    else:
+                        for i in range(self.player_count):
+                            if p[i] == "werewolf" and p[lover_id] != "werewolf":
+                                lover_werewolf_attacks += self.deaths[lover_id][i]
 
                 total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
 

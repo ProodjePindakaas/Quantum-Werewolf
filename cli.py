@@ -225,19 +225,24 @@ if __name__ == "__main__":
         system('clear')
         print('The day begins')
 
-        # check who died since last check
-        killed_players = g.check_deaths()
+        def process_deaths():
+            # check who died since last check
+            killed_players = g.check_deaths()
 
-        # kill all players
-        for player in killed_players:
-            player_role = g.kill(player)
-            print(f'  {player} was killed during the night')
-            print(f'    {player} was {role_preposition[player_role]}{player_role}')
-            if player_role == 'hunter':
-                print(f'  {player} must now kill another player')
-                hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
-                hunter_target_role = g.kill(hunter_target)
-                print(f'  {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
+            # kill all players that died
+            for player in killed_players:
+                player_role = g.kill(player)
+                print(f'  {player} was killed during the night')
+                print(f'    {player} was {role_preposition[player_role]}{player_role}')
+                if player_role == 'hunter':
+                    print(f'  {player} must now kill another player')
+                    hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
+                    hunter_target_role = g.kill(hunter_target)
+                    print(f'  {hunter_target} was killed by the hunter')
+                    print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
+                    process_deaths()
+
+        process_deaths()
 
         # check win before the vote
         win, winners = g.check_win()
@@ -251,12 +256,14 @@ if __name__ == "__main__":
         # vote
         lynch_target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n    ')
         lynch_target_role = g.kill(lynch_target)
+        print(f' {lunch_target} was killed by the village')
         print(f'  {lynch_target} was {role_preposition[lynch_target_role]}{lynch_target_role}')
         if lynch_target_role == 'hunter':
             print(f'  {lynch_target} must now kill another player')
             hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {lynch_target}, who do you shoot?\n    ')
             hunter_target_role = g.kill(hunter_target)
-            print(f'  {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
+            print(f'  {player} was killed by the hunter')
+            print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
 
         input('(press ENTER to continue)')
 
