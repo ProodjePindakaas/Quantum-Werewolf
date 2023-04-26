@@ -21,10 +21,12 @@ def ask_yesno(query, yes, no):
 
 def ask_player(query, invalid_players=[]):
     answer = input(query + 'Name: ')
-    valid_players = g.players.copy()
+    valid_players = g.living_players()
     for player in invalid_players:
         valid_players.remove(player)
-    if answer in valid_players and g.killed[g.ID(answer)] == 0:
+    if not valid_players:
+        return None
+    if answer in valid_players:
         return answer
     else:
         print('  "{}" is not a valid choice'.format(answer))
@@ -37,7 +39,7 @@ def ask_player(query, invalid_players=[]):
 
 
 # Gives the table of probabilities
-def print_probabilities():
+def print_probability_table():
     probabilities = g.calculate_probabilities()
 
     header_line = f"{'player':>12s}"
@@ -46,14 +48,32 @@ def print_probabilities():
     header_line += f"{'dead':>12s}"
     print(header_line)
 
-    for name, j in enumerate(g.print_permutation):
-        p = probabilities[j]
+    for i in g.print_permutation:
+        p = probabilities[i]
+        name = '???'
         if p['dead'] == 1:
             name = p['name']
         line = f"{str(name):>12s}"
         for role in g.used_roles:
             line += f"{100*p[role]:11.0f}%"
         line += f"{100*p['dead']:11.0f}%"
+        print(line)
+
+
+def print_probability_bars():
+    probabilities = g.calculate_probabilities()
+
+    for i in g.print_permutation:
+        p = probabilities[i]
+        name = '???'
+        if p['dead'] == 1:
+            name = p['name']
+        line = f"{str(name):>12s}    "
+        for role in g.used_roles:
+            letter = role[0].capitalize()
+            length = round(p[role] * 20)
+            line += f"{role_style_bold[role]}{letter * length}"
+        line += f"{normal}{100*p['dead']:11.0f}% dead"
         print(line)
 
 
@@ -225,22 +245,25 @@ if __name__ == "__main__":
         system('clear')
         print('The day begins')
 
+        def print_kill(player):
+            player_role = g.kill(player)
+            print(f'  {player} was killed during the night')
+            print(f'    {player} was {role_preposition[player_role]}{player_role}')
+            if player_role == 'hunter' and g.living_players():
+                print(f'    {player} must now kill another player')
+                hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
+                hunter_target_role = g.kill(hunter_target)
+                print(f'  {hunter_target} was killed by the hunter')
+                print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
+                process_deaths()
+
         def process_deaths():
             # check who died since last check
             killed_players = g.check_deaths()
 
             # kill all players that died
             for player in killed_players:
-                player_role = g.kill(player)
-                print(f'  {player} was killed during the night')
-                print(f'    {player} was {role_preposition[player_role]}{player_role}')
-                if player_role == 'hunter':
-                    print(f'  {player} must now kill another player')
-                    hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
-                    hunter_target_role = g.kill(hunter_target)
-                    print(f'  {hunter_target} was killed by the hunter')
-                    print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
-                    process_deaths()
+                print_kill(player)
 
         process_deaths()
 
@@ -251,19 +274,11 @@ if __name__ == "__main__":
             break
 
         # Show current game state
-        print_probabilities()
+        print_probability_bars()
 
         # vote
         lynch_target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n    ')
-        lynch_target_role = g.kill(lynch_target)
-        print(f' {lunch_target} was killed by the village')
-        print(f'  {lynch_target} was {role_preposition[lynch_target_role]}{lynch_target_role}')
-        if lynch_target_role == 'hunter':
-            print(f'  {lynch_target} must now kill another player')
-            hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {lynch_target}, who do you shoot?\n    ')
-            hunter_target_role = g.kill(hunter_target)
-            print(f'  {player} was killed by the hunter')
-            print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
+        print_kill(lynch_target)
 
         input('(press ENTER to continue)')
 

@@ -137,14 +137,19 @@ class Game:
                 return False
 
     # Returns the ID corresponding to someone's name
-    def ID(self, player_name):
+    def _id(self, player_name):
         # name: the name of the player
+        assert player_name in self.players
         return self.players.index(player_name)
 
     # Returns the ID corresponding to someone's name
-    def name(self, player_id):
+    def _name(self, player_id):
         # name: the name of the player
+        assert player_id < self.player_count
         return self.players[player_id]
+
+    def living_players(self):
+        return [player for player_id, player in enumerate(self.players) if self.killed[player_id] == 0]
 
     # Calculates the probabilities
     def calculate_probabilities(self):
@@ -163,17 +168,17 @@ class Game:
     # Let a player take their cupid action
     def cupid(self, cupid, lover1, lover2):
         if self.check_started():
-            cupid_id = self.ID(cupid)
-            lovers = (self.ID(lover1), self.ID(lover2))
+            cupid_id = self._id(cupid)
+            lovers = (self._id(lover1), self._id(lover2))
             self.lovers_list[cupid_id] = lovers
 
-    # Let a player take their seer action
+    # Let a player take theirname seer action
     def seer(self, seer, target):
         # seer: name of the seer
         # target: name of the target of the seer
         if self.check_started():
-            seer_id = self.ID(seer)
-            target_id = self.ID(target)
+            seer_id = self._id(seer)
+            target_id = self._id(target)
 
             # Check if player and target are alive and player can be the seer
             assert self.killed[seer_id] != 1, "ERROR: in seer() seer {} is dead.".format(seer)
@@ -186,7 +191,7 @@ class Game:
             p_list = [p for p in self.permutations if p[seer_id] == 'seer']
 
             # Choose an outcome
-            assert len(p_list) > 0, "ERROR: seer list is empty"
+            assert p_list, "ERROR: seer list is empty"
             target_role = choice(p_list)[target_id]
 
             # Collapse the wave function
@@ -203,7 +208,7 @@ class Game:
     # Force someone's death (e.g., after a vote). Otherwise used only by script
     def kill(self, target):
         # target: the name of the target
-        target_id = self.ID(target)
+        target_id = self._id(target)
         if self.check_started():
             assert self.killed[target_id] != 1, "ERROR:in kill() target {} is already dead.".format(target)
 
@@ -244,41 +249,52 @@ class Game:
                 killed_players.append(player)
         return killed_players
 
-    # Shows the probability of death for a player TODO: rwerite into separate werewolf attack counting function
-    def death_probability(self, name):
+    # get the lover of a player in a given permutation (if they exist)
+    def _lover(self, permutation, player):
+        player_id = self._id(player)
+        lover_id = None
+        if 'cupid' in permutation:
+            cupid_id = permutation.index('cupid')
+            if cupid_id in self.lovers_list:
+                lover1, lover2 = self.lovers_list[cupid_id]
+                if player_id == lover1:
+                    lover_id = lover2
+                elif player_id == lover2:
+                    lover_id = lover1
+        return lover_id
+
+    # count attacks by werewolves in this permutation
+    def _werewolf_attacks(self, permutation, player):
+        player_id = self._id(player)
+        werewolf_attacks = 0
+        for i in range(self.player_count):
+            if permutation[i] == "werewolf" and permutation[player_id] != "werewolf":
+                werewolf_attacks += self.deaths[player_id][i]
+        return werewolf_attacks
+
+    # computes the probability of death for a player
+    def death_probability(self, player):
         # name: name of player
-        name_id = self.ID(name)
-        if self.killed[name_id] == 1:
+        player_id = self._id(player)
+        if self.killed[player_id] == 1:
             P_dead = 1
         else:
             total_attacks = 0
             for p in self.permutations:
                 # check for lover in permutation
-                lover_id = None
-                if 'cupid' in p:
-                    cupid_id = p.index('cupid')
-                    if cupid_id in self.lovers_list:
-                        lover1, lover2 = self.lovers_list[cupid_id]
-                        if name_id == lover1:
-                            lover_id = lover2
-                        elif name_id == lover2:
-                            lover_id = lover1
+                lover_id = self._lover(p, player)
 
-                werewolf_attacks = 0
                 # count attacks by werewolves in this permutation
-                for i in range(self.player_count):
-                    if p[i] == "werewolf" and p[name_id] != "werewolf":
-                        werewolf_attacks += self.deaths[name_id][i]
+                werewolf_attacks = self._werewolf_attacks(p, player)
 
-                lover_werewolf_attacks = 0
                 # count attacks by werewolves on lover in this permutation
+                lover_werewolf_attacks = 0
                 if lover_id is not None:
+                    lover = self._name(lover_id)
                     if self.killed[lover_id] == 1:
                         lover_werewolf_attacks = 1  # TODO: rename this as it also checks if lover is killed by other means
                     else:
-                        for i in range(self.player_count):
-                            if p[i] == "werewolf" and p[lover_id] != "werewolf":
-                                lover_werewolf_attacks += self.deaths[lover_id][i]
+                        lover_werewolf_attacks = self._werewolf_attacks(p, lover)
 
                 total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
 
@@ -289,8 +305,8 @@ class Game:
     def werewolf(self, werewolf, target):
         # werewolf: the name of the werewolf
         # target: the name of the werewolf's target
-        werewolf_id = self.ID(werewolf)
-        target_id = self.ID(target)
+        werewolf_id = self._id(werewolf)
+        target_id = self._id(target)
         if self.check_started():
             assert self.killed[werewolf_id] != 1, "ERROR: in werewolf() werewolf {} is dead".format(werewolf)
             assert self.killed[target_id] != 1, "ERROR: in werewolf() target {} is dead".format(target)
@@ -302,7 +318,7 @@ class Game:
 
     # Gives the probabilities of all other players being a werewolf
     def other_werewolves(self, werewolf):
-        werewolf_id = self.ID(werewolf)
+        werewolf_id = self._id(werewolf)
         projection = [p for p in self.permutations if p[werewolf_id] == 'werewolf']
 
         if not projection:
@@ -320,7 +336,7 @@ class Game:
 
     # Gives the probabilities of all players being your lover
     def other_lover(self, player):
-        player_id = self.ID(player)
+        player_id = self._id(player)
 
         lover_count_list = [0] * self.player_count
         for p in self.permutations:

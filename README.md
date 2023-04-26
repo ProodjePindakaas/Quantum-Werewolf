@@ -1,14 +1,18 @@
 # Quantum Werewolf
 
-Quantum Werewolf is a game I created in Python a long time ago, which I uploaded to GitHub to share with friends.
-I might one day upload a new version with better code and more roles.
+Quantum Werewolf is a game based on the party game "The Werewolves of Millers Hollow" (known as "Weerwolven van Wakkerdam" to Dutch audiences) with a quantum mechanical twist: Players play all possible games of werewolf at the same time.
 
-Now, on to the actual game...
+## Installation
 
-## What is Quantum Werewolf?
+Not packaged yet.
 
-Quantum Werewolf is a game based on the party game "The Werewolves of Millers Hollow" (known as "Weerwolven van Wakkerdam" to Dutch audiences) with a quantum mechanical twist.
+## Usage
 
+Start the game in a terminal by running the command-line-interface python script cli.py.
+
+    python cli.py
+
+## About
 
 ### What is "The Werewolves of Millers Hollow"?
 
@@ -31,95 +35,31 @@ education tool for superpositions, or as a way to pit physicists against each ot
 
 ## What are the rules?
 
-The game can support any number of players, one of which must be the game master (or GM). The GM does not actively compete with the other players, but runs the game behind
-the screens.
+### Game setup
 
-> P: (Python script) players are added using the "add_players" command.
+When you start a game of quantum werewolf, you are prompted to enter the names of all participating players first.
+After entering and confirming the list of players, you are presented with the standard role selection of 2 werewolves and the seer.
+You may refuse this role selection and choose the amount of werewolves as well as the additional roles.
 
-> FE: (for example) Let us say that our game has 4 players, Alice, Bob, Craig and David, and one GM, Zack. In the Python script, Zack runs
+A game of quantum werewolf needs at least 1 werewolf, optional roles are:
 
-    g.add_players('Alice', 'Bob', 'Craig', 'David')
+ * Seer: Inspects the identity of a player each night, revealing their role to the seer.
+ * Cupid: Chooses two players to fall in love during the first night. Whenever one of the lovers dies, the other dies as well. The lovers win if they are the only 2 players left, regardless of role.
+ * Hunter: Whenever the hunter dies, they may choose to kill another player.
 
-At the beginning of the game, all players (except the GM) are assigned a random ID number. Only the GM and the player can know someone's secret ID.
-> FE: Randomly, Alice is assigned to be player 1, Bob is player 2, Craig is player 3 and David is player 4. Only Alice and Zack can know that Alice is player 1 at this stage, but the other players might figure out later on...
+You should also decide on the rules to follow during the day phase.
 
-Using the deck of cards chosen by the GM (by default, 2 werewolves and 1 seer), all permutations of possible game states are generated.
->FE: At the start of the game, the 12 possible permutations are (let w represent werewolf, s represent seer and v represent villager)
+### Night phase
 
-    [s, w, w, v], [s, w, v, w], [s, v, w, w], [w, s, w, v], [w, s, v, w], [v, s, w, w], [w, w, s, v], [w, v, s, w], [v, w, s, w], [w, w, v, s], [w, v, w, s], [v, w, w, s].
+During the night all special roles get to take their specific actions. In quantum werewolf all players will take all their actions in turns.
+In your turn you must specify how you would act as each role. You are only promted for actions corresponding to roles for which you have a non-zero probability to be.
 
-The players are given how many possible permutations there are, and a table of probabilities on which roles they might have.
-> FE: Zack will show the players the following information:
-> There are 12 possible permutations left.
+### Day phase
 
-    |Player  |  Villagers |     Seer |  Werewolf |  Dead |
-    | ------ | ---------- | -------- | --------- | ----- |
-    |     1  |       0.25 | 0.25     |  0.5      | 0     |
-    |     2  |       0.25 | 0.25     |  0.5      | 0     |
-    |     3  |       0.25 | 0.25     |  0.5      | 0     |
-    |     4  |       0.25 | 0.25     |  0.5      | 0     |
+At the start of the day phase all players that have died during the night will be revealed, as will their roles.
+After the reveal, the players are presented with the current state of the game in which all players and their chances of being each role is tabulated.
+All players in the table are anomymous except for dead players. The order of the players is random, but fixed throughout the game.
 
-> P: The above few steps are automatically taken upon running "g.start()". You can set the deck using "g.set_deck()".
-
-Now the game can officially begin. It starts with a night phase
-
-#### During the night:
-
-- Actions are taken in order of ID, although only the GM knows everyone's ID, so he may only commit the actions once everyone has submitted their targets.
-
-- Each player with a non-zero probability of being a seer can look at another player's role. All permutations where the acting player is a seer and the target is not
-   the role seen by the seer are eliminated.
-
-   > P: this is realised using the "seer" command.
-
-   > FE: Alice looks at Bob's role, so Zack runs "g.seer('Alice', 'Bob')" and tells Alice she sees he is a werewolf. Permutation [s, v, w, w] gets removed from the superposition, since it is impossible.
-
-- Each player with a non-zero probability of being a werewolf can attempt to kill another player. All alive wolves in all permutations must do this at any point during the game in order for someone to be killed by wolves.
-
-   > P: this is realised using the "wolf" command.
-
-   > FE: Alice decides to kill Craig, so Zack runs "g.wolf('Alice', 'Craig')". This makes Craig 1/2 dead in all permutations in which Alice is a werewolf.
-
-   > N.B.: If the second wolf would die while Alice is still alive, it would not make Craig fully dead in the permutations in which Alice is the werewolf, and it stays at 1/2. If, however, Alice decides to attack Craig again, it would make him fully dead in those permutations.
-
-- After everyone had their actions, it becomes day.
-
-#### During the day:
-
-- The GM reveals whether anyone died during the night, and if they did, they will reveal the dead person's role. All permutations where he wasn't that role are removed.
-
-   > N.B.: A player can only die at night if he is fully dead in all permutations.
-
-   > P: This is realised automatically when probabilities are calculated via g.calculate_probabilities().
-
- - The GM once again shows all players the table of probabilities, and the number of permutations left.
-
-   > FE: If nobody else took an action during the first night (which is impossible), the table would look like so:
-
-   > There are 11 possible permutations left.
-
-        |Player  |  Villagers |     Seer  |  Werewolf |     Dead |
-        | ------ | ---------- | --------- | --------- | -------- |
-        |     1  |   0.272727 | 0.181818  |  0.545455 | 0        |
-        |     2  |   0.181818 | 0.272727  |  0.545455 | 0        |
-        |     3  |   0.272727 | 0.272727  |  0.454545 | 0.181818 |
-        |     4  |   0.272727 | 0.272727  |  0.454545 | 0        |
-
-    > P: This is realised through running "g.get_probabilities()".
-
-  - All players who are still alive get to vote to lynch a player. That player instantly dies in all permutations, and his role is revealed.
-
-    > P: You may use the "kill" command for these purposes.
-
-    > FE: The town vote to lynch David. Zack runs "g.kill('David')", which reveals that he was a werewolf! All permutations in which David isn't a werewolf are eliminated.
-
-  - It becomes night.
-
-
-The game ends when in all permutations, only the werewolves are alive, only the village is alive or everyone has died. In the event of the game ending, all players who
-are in the winning team (in all permutations) win. The superposition doesn't necessarily have to collapse fully for the game to end in a village win.
-
-> FE: if on the second day, Bob is lynched and revealed to be a werewolf, there are still the permutations [s, w, v, w] and [v, w, s, w] left!
-Nonetheless, the town, consisting of Alice and Craig, wins!
-
-I hope this explanation was clear. Feel free to contact me if you have any questions!
+All players that are still alive must now discuss whoever they will lynch.
+This discussion is separate from the interface of the game.
+You should decide beforehand on the format of this discussion and how the lynch target will be decided.
