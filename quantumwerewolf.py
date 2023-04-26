@@ -251,8 +251,7 @@ class Game:
         return killed_players
 
     # get the lover of a player in a given permutation (if they exist)
-    def _lover(self, permutation, player):
-        player_id = self._id(player)
+    def _lover(self, permutation, player_id):
         lover_id = None
         if 'cupid' in permutation:
             cupid_id = permutation.index('cupid')
@@ -265,8 +264,7 @@ class Game:
         return lover_id
 
     # count attacks by werewolves in this permutation
-    def _werewolf_attacks(self, permutation, player):
-        player_id = self._id(player)
+    def _werewolf_attacks(self, permutation, player_id):
         werewolf_attacks = 0
         for i in range(self.player_count):
             if permutation[i] == "werewolf" and permutation[player_id] != "werewolf":
@@ -283,19 +281,18 @@ class Game:
             total_attacks = 0
             for p in self.permutations:
                 # check for lover in permutation
-                lover_id = self._lover(p, player)
+                lover_id = self._lover(p, player_id)
 
                 # count attacks by werewolves in this permutation
-                werewolf_attacks = self._werewolf_attacks(p, player)
+                werewolf_attacks = self._werewolf_attacks(p, player_id)
 
                 # count attacks by werewolves on lover in this permutation
                 lover_werewolf_attacks = 0
                 if lover_id is not None:
-                    lover = self._name(lover_id)
                     if self.killed[lover_id] == 1:
                         lover_werewolf_attacks = 1  # TODO: rename this as it also checks if lover is killed by other means
                     else:
-                        lover_werewolf_attacks = self._werewolf_attacks(p, lover)
+                        lover_werewolf_attacks = self._werewolf_attacks(p, lover_id)
 
                 total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
 
