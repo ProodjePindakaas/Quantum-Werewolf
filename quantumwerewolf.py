@@ -61,6 +61,8 @@ class Game:
             else:
                 self.players = ["Player " + str(x+1) for x in range(self.player_count)]
 
+            self.player_ids = {player: self.players.index(player) for player in self.players}
+
             # Generate permutation list for anomymous printing in print_probabilities()
             self.print_permutation = list(range(self.player_count))
             shuffle(self.print_permutation)
@@ -140,7 +142,7 @@ class Game:
     def _id(self, player_name):
         # name: the name of the player
         assert player_name in self.players
-        return self.players.index(player_name)
+        return self.player_ids[player_name]
 
     # Returns the ID corresponding to someone's name
     def _name(self, player_id):
@@ -154,13 +156,12 @@ class Game:
     # Calculates the probabilities
     def calculate_probabilities(self):
         if self.check_started():
-            self.nperm = len(self.permutations)
             transpose = list(zip(*self.permutations))
             self.probs = []
             for i, p in enumerate(self.players):
                 player_probs = {'name': p}
                 for role in self.used_roles:
-                    player_probs[role] = transpose[i].count(role) / self.nperm
+                    player_probs[role] = transpose[i].count(role) / len(self.permutations)
                 player_probs['dead'] = self.death_probability(p)
                 self.probs.append(player_probs)
             return self.probs
