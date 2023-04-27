@@ -81,7 +81,7 @@ class Game:
 
             # Generates the list of all role permutations
             roles = [role for role, count in self.role_count.items() for _ in range(count)]
-            self.permutations = list(permutations(roles))
+            self.permutations = {p: True for p in permutations(roles)}
 
             # Set all players to be fully alive
             self.deaths = []
@@ -138,6 +138,9 @@ class Game:
                     print("Please stop the game first with stop().")
                 return False
 
+    def valid_permutations(self):
+        return [p for p in self.permutations if self.permutations[p]]
+
     # Returns the ID corresponding to someone's name
     def _id(self, player_name):
         # name: the name of the player
@@ -156,12 +159,13 @@ class Game:
     # Calculates the probabilities
     def calculate_probabilities(self):
         if self.check_started():
-            transpose = list(zip(*self.permutations))
+            p_list = self.valid_permutations()
+            transpose = list(zip(*p_list))
             self.probs = []
             for i, p in enumerate(self.players):
                 player_probs = {'name': p}
                 for role in self.used_roles:
-                    player_probs[role] = transpose[i].count(role) / len(self.permutations)
+                    player_probs[role] = transpose[i].count(role) / len(p_list)
                 player_probs['dead'] = self.death_probability(p)
                 self.probs.append(player_probs)
             return self.probs
@@ -189,7 +193,7 @@ class Game:
             # Player is allowed to take the action
             if self.verbose:
                 print("{} is investigating {} ...".format(seer, target))
-            p_list = [p for p in self.permutations if p[seer_id] == 'seer']
+            p_list = [p for p in self.permutations if p[seer_id] == 'seer' and self.permutations[p]]
 
             # Choose an outcome
             assert p_list, "ERROR: seer list is empty"
@@ -198,7 +202,7 @@ class Game:
             # Collapse the wave function
             for p in p_list:
                 if p[target_id] != target_role:
-                    self.permutations.remove(p)
+                    self.permutations[p] = False
 
             # Report on results
             if self.verbose:
@@ -217,14 +221,14 @@ class Game:
                 print("{} was killed!".format(target))
 
             # Chooses an outcome
-            result = choice(self.permutations)
+            p_list = [p for p in self.permutations if self.permutations[p]]
+            result = choice(p_list)
             target_role = result[target_id]
-            permt = list(self.permutations)
 
             # Collapse the wave function
-            for p in permt:
+            for p in p_list:
                 if p[target_id] != target_role:
-                    self.permutations.remove(p)
+                    self.permutations[p] = False
 
             # Report on results
             if self.verbose:
@@ -252,15 +256,15 @@ class Game:
 
     # get the lover of a player in a given permutation (if they exist)
     def _lover(self, permutation, player_id):
+        if self.role_count['cupid'] == 0 or not self.lovers_list:
+            return None
         lover_id = None
-        if 'cupid' in permutation:
-            cupid_id = permutation.index('cupid')
-            if cupid_id in self.lovers_list:
-                lover1, lover2 = self.lovers_list[cupid_id]
-                if player_id == lover1:
-                    lover_id = lover2
-                elif player_id == lover2:
-                    lover_id = lover1
+        cupid_id = permutation.index('cupid')
+        lover1, lover2 = self.lovers_list[cupid_id]
+        if player_id == lover1:
+            lover_id = lover2
+        elif player_id == lover2:
+            lover_id = lover1
         return lover_id
 
     # count attacks by werewolves in this permutation
@@ -276,27 +280,29 @@ class Game:
         # name: name of player
         player_id = self._id(player)
         if self.killed[player_id] == 1:
-            P_dead = 1
-        else:
-            total_attacks = 0
-            for p in self.permutations:
-                # check for lover in permutation
-                lover_id = self._lover(p, player_id)
+            return 1
 
-                # count attacks by werewolves in this permutation
-                werewolf_attacks = self._werewolf_attacks(p, player_id)
+        total_attacks = 0
+        p_list = self.valid_permutations()
+        for p in p_list:
+            # check for lover in permutation
+            lover_id = self._lover(p, player_id)
 
-                # count attacks by werewolves on lover in this permutation
-                lover_werewolf_attacks = 0
-                if lover_id is not None:
-                    if self.killed[lover_id] == 1:
-                        lover_werewolf_attacks = 1  # TODO: rename this as it also checks if lover is killed by other means
-                    else:
-                        lover_werewolf_attacks = self._werewolf_attacks(p, lover_id)
+            # count attacks by werewolves in this permutation
+            werewolf_attacks = self._werewolf_attacks(p, player_id)
 
-                total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
+            # count attacks by werewolves on lover in this permutation
+            lover_werewolf_attacks = 0
+            if lover_id is not None:
+                if self.killed[lover_id] == 1:
+                    lover_werewolf_attacks = 1  # TODO: rename this as it also checks if lover is killed by other means
+                else:
+                    lover_werewolf_attacks = self._werewolf_attacks(p, lover_id)
 
-            P_dead = total_attacks / len(self.permutations)
+            total_attacks += max(werewolf_attacks, lover_werewolf_attacks)
+
+        P_dead = total_attacks / len(p_list)
+
         return P_dead
 
     # Lets someone commit their werewolf action
@@ -337,7 +343,8 @@ class Game:
         player_id = self._id(player)
 
         lover_count_list = [0] * self.player_count
-        for p in self.permutations:
+        p_list = self.valid_permutations()
+        for p in p_list:
             if 'cupid' in p:
                 cupid_id = p.index('cupid')
                 lover1, lover2 = self.lovers_list[cupid_id]
@@ -358,12 +365,14 @@ class Game:
         villager_win = True
         werewolf_win = True
         lover_win = True
-        for perm in self.permutations:
+
+        p_list = self.valid_permutations()
+        for p in p_list:
             lovers = ()
-            if 'cupid' in perm:
-                cupid_id = perm.index('cupid')
+            if 'cupid' in p:
+                cupid_id = p.index('cupid')
                 lovers = self.lovers_list[cupid_id]
-            for ID, role in enumerate(perm):
+            for ID, role in enumerate(p):
                 if self.killed[ID] == 0:
                     all_dead = False
                     if role == 'werewolf':
