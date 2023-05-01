@@ -70,8 +70,9 @@ def print_probability_bars():
             name = p['name']
         line = f"{str(name):>12s}    "
         for role in g.used_roles:
+            chance = p[role]
             letter = role[0].capitalize()
-            length = round(p[role] * 20)
+            length = round(chance * bar_length)
             line += f"{role_style_bold[role]}{letter * length}"
         line += f"{normal}{100*p['dead']:11.0f}% dead"
         print(line)
@@ -117,6 +118,8 @@ if __name__ == "__main__":
         'hunter': 'the ',
         'cupid': '',
         }
+
+    bar_length = 20
 
     g = Game()
 
@@ -196,7 +199,10 @@ if __name__ == "__main__":
             print(f'\n  {underline}Your role:{normal}')
             for role in g.used_roles:
                 style = role_style[role]
-                print(f"    {style}{role:>8s}: {100*player_probabilities[role]:3.0f}%{normal}")
+                letter = role[0].capitalize()
+                chance = player_probabilities[role]
+                length = round(chance * bar_length)
+                print(f"    {style}{role:>8s}: {100*chance:3.0f}% {letter * length}{normal}")
 
             # cupid
             if 'cupid' in g.used_roles:
@@ -213,7 +219,8 @@ if __name__ == "__main__":
                         name = player['name']
                         chance = player['lover']
                         if name != p:
-                            print(f'    {name:>12s}: {100*chance:3.0f}%')
+                            length = round(chance * bar_length)
+                            print(f'    {name:>12s}: {100*chance:3.0f}% {boldblue}{"L" * length}{normal}')
 
             # seer
             if 'seer' in g.used_roles and player_probabilities['seer'] != 0:
@@ -230,7 +237,8 @@ if __name__ == "__main__":
                     name = player['name']
                     chance = player['werewolf']
                     if name != p:
-                        print(f'    {name:>12s}: {100*chance:3.0f}%')
+                        length = round(chance * bar_length)
+                        print(f'    {name:>12s}: {100*chance:3.0f}% {boldred}{"W"*length}{normal}')
 
                 # do werewolf action
                 target = ask_player(f'\n  {boldred}[WEREWOLF]{normal} Who do you attack?\n    ')
@@ -287,3 +295,5 @@ if __name__ == "__main__":
         if win:
             print(f"\nThe {winners} win!")
             break
+
+        print_probability_bars()

@@ -323,7 +323,8 @@ class Game:
     # Gives the probabilities of all other players being a werewolf
     def other_werewolves(self, werewolf):
         werewolf_id = self._id(werewolf)
-        projection = [p for p in self.permutations if p[werewolf_id] == 'werewolf']
+        p_list = self.valid_permutations()
+        projection = [p for p in p_list if p[werewolf_id] == 'werewolf']
 
         if not projection:
             return []
@@ -344,8 +345,8 @@ class Game:
 
         lover_count_list = [0] * self.player_count
         p_list = self.valid_permutations()
-        for p in p_list:
-            if 'cupid' in p:
+        if self.role_count['cupid'] > 0:
+            for p in p_list:
                 cupid_id = p.index('cupid')
                 lover1, lover2 = self.lovers_list[cupid_id]
                 if player_id == lover1:
@@ -355,7 +356,7 @@ class Game:
 
         probs = []
         for i, p in enumerate(self.players):
-            P_lover = lover_count_list[i] / len(self.permutations)
+            P_lover = lover_count_list[i] / len(p_list)
             probs.append({'name': p, 'lover': P_lover})
 
         return probs
