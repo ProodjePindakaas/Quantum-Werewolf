@@ -61,7 +61,7 @@ class Game:
             else:
                 self.players = ["Player " + str(x+1) for x in range(self.player_count)]
 
-            self.player_ids = {player: self.players.index(player) for player in self.players}
+            self.player_ids = {player: player_id for player_id, player in enumerate(self.players)}
 
             # Generate permutation list for anomymous printing in print_probabilities()
             self.print_permutation = list(range(self.player_count))
@@ -144,13 +144,11 @@ class Game:
     # Returns the ID corresponding to someone's name
     def _id(self, player_name):
         # name: the name of the player
-        assert player_name in self.players
         return self.player_ids[player_name]
 
     # Returns the ID corresponding to someone's name
     def _name(self, player_id):
         # name: the name of the player
-        assert player_id < self.player_count
         return self.players[player_id]
 
     def living_players(self):

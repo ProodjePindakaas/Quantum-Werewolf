@@ -78,6 +78,42 @@ def print_probability_bars():
         print(line)
 
 
+def print_kill(player, cause=''):
+    player_role = g.kill(player)
+    print(f'  {player} was killed {cause}')
+    print(f'    {player} was {role_preposition[player_role]}{player_role}')
+    return player_role
+
+
+def process_deaths(killed_players):
+    # kill all players that died
+    hunter = None
+    for player in killed_players:
+        player_role = print_kill(player, 'during the night')
+        if player_role == 'hunter':
+            hunter = player
+
+    # if hunter died and someone is still alive they must kill someone
+    if hunter and g.living_players():
+        print(f'    {player} must now kill another player')
+        hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
+        print_kill(hunter_target, 'by the hunter')
+
+    # check for chain deaths
+    if killed_players:
+        killed_players = g.check_deaths()
+        process_deaths(killed_players)
+
+
+def print_win():
+    win, winners = g.check_win()
+    if win:
+        print(f"\n\n{bold}THE {winners.upper()} WIN!{normal}\n")
+        print_probability_bars()
+        g.stop()
+    return win
+
+
 if __name__ == "__main__":
 
     # Define colors
@@ -253,32 +289,14 @@ if __name__ == "__main__":
         system('clear')
         print('The day begins')
 
-        def print_kill(player):
-            player_role = g.kill(player)
-            print(f'  {player} was killed during the night')
-            print(f'    {player} was {role_preposition[player_role]}{player_role}')
-            if player_role == 'hunter' and g.living_players():
-                print(f'    {player} must now kill another player')
-                hunter_target = ask_player(f'\n  {boldgreen}[HUNTER]{normal} {player}, who do you shoot?\n    ')
-                hunter_target_role = g.kill(hunter_target)
-                print(f'  {hunter_target} was killed by the hunter')
-                print(f'    {hunter_target} was {role_preposition[hunter_target_role]}{hunter_target_role}')
-                process_deaths()
-
-        def process_deaths():
-            # check who died since last check
+        def start_day():
             killed_players = g.check_deaths()
+            process_deaths(killed_players)
 
-            # kill all players that died
-            for player in killed_players:
-                print_kill(player)
-
-        process_deaths()
+        start_day()
 
         # check win before the vote
-        win, winners = g.check_win()
-        if win:
-            print(f"\nThe {winners} win!")
+        if print_win():
             break
 
         # Show current game state
@@ -286,14 +304,14 @@ if __name__ == "__main__":
 
         # vote
         lynch_target = ask_player(f'\n  {boldyellow}[ALL VILLAGERS]{normal} Who do you lynch?\n    ')
-        print_kill(lynch_target)
 
-        input('(press ENTER to continue)')
+        def end_day():
+            process_deaths([lynch_target])
+
+        end_day()
 
         # check win after the vote
-        win, winners = g.check_win()
-        if win:
-            print(f"\nThe {winners} win!")
+        if print_win():
             break
 
-        print_probability_bars()
+        input('(press ENTER to continue)')
