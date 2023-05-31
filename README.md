@@ -2,15 +2,18 @@
 
 Quantum Werewolf is a game based on the party game "The Werewolves of Millers Hollow" (known as "Weerwolven van Wakkerdam" to Dutch audiences) with a quantum mechanical twist: Players play all possible games of werewolf at the same time.
 
+Original puzzle:
+https://web.archive.org/web/20080719133809/http://puzzle.cisra.com.au/D-5-Schroedingers-Wolves.pdf
+Solution and original explanation:
+https://web.archive.org/web/20181116123708/https://puzzle.cisra.com.au/2008/quantumwerewolf.html
+
 ## Installation
 
 Not packaged yet.
 
 ## Usage
 
-Start the game in a terminal by running the command-line-interface python script cli.py.
-
-    python cli.py
+Start the game in a terminal by running the `quantum-werewolf` command.
 
 ## About
 
