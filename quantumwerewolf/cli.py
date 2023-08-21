@@ -141,16 +141,19 @@ class CliGame(Game):
             if player_role == 'hunter':
                 hunter = player
 
+        # check for chain deaths
+        if killed_players:
+            killed_players = self.check_deaths()
+            self.process_deaths(killed_players)
+
         # if hunter died and someone is still alive they must kill someone
         if hunter and self.living_players():
             print(f'    {player} must now kill another player')
             hunter_target = self.ask_player(f'\n  {self.boldgreen}[HUNTER]{self.normal} {player}, who do you shoot?\n    ')
             self.print_kill(hunter_target, 'by the hunter')
-
-        # check for chain deaths
-        if killed_players:
             killed_players = self.check_deaths()
             self.process_deaths(killed_players)
+
 
     def print_win(self):
         win, winners = self.check_win()
