@@ -1,5 +1,8 @@
+import logging
 from os import system
 from quantumwerewolf.backend import Game
+
+logger = logging.getLogger(__name__)
 
 
 class CliGame(Game):
@@ -219,7 +222,7 @@ def cli():
         system('clear')
         print('Night falls and all players take their actions in turns privately\n')
 
-        start_probabilities = g.probs
+        start_probabilities = g.calculate_probabilities()
         start_other_werewolves = [g.other_werewolves(p) for p in g.players]
         if turn_counter > 1:
             start_other_lover = [g.other_lover(p) for p in g.players]
@@ -243,7 +246,7 @@ def cli():
                 letter = role[0].capitalize()
                 chance = player_probabilities[role]
                 length = round(chance * g.bar_length)
-                print(f"    {style}{role:>8s}: {100*chance:3.0f}% {letter * length}{g.normal}")
+                print(f"    {style}{role:>8s}: {100*chance:3.0f}% |{letter * length:<{g.bar_length}}|{g.normal}")
 
             # cupid
             if 'cupid' in g.used_roles:

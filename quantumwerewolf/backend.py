@@ -6,6 +6,8 @@ from functools import wraps
 from typing import Callable, List, Tuple, Union
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class Player:
 
@@ -13,6 +15,7 @@ class Player:
         self.index = index
         self.name = name
         self.killed = False
+        self.logger = logging.getLogger(__name__)
         # can put lover list here
 
 
@@ -31,8 +34,10 @@ class Game:
         self.role_count = Game.default_roles.copy()
         self.player_count = 0
         self.started = False
+        self.logger = logging.getLogger(__name__)
         # optional rules
         self.werewolf_cannot_eat_werewolf = True
+        self.max_permutations = 20
 
     def started(value: bool = True) -> Callable:
         """Return decorator that return decorated function that only runs when the game has started (or not).
@@ -44,6 +49,7 @@ class Game:
             @wraps(function)
             def wrapper(self, *args: object, **kwargs: object) -> object:
                 if self.started == value:
+                    self.logger.debug(f'Game.started value correctly equals {value}')
                     return function(self, *args, **kwargs)
                 else:
                     raise ValueError(f'Game.started equal {self.started} when it should be {value}')
@@ -62,9 +68,11 @@ class Game:
             if isinstance(name, str):
                 # Check if name is not already taken
                 if name in self.players:
-                    logging.warning("Player {} already exists!".format(name))
+                    # TODO: check if logging is applicatble
+                    self.logger.warning("Player {} already exists!".format(name))
                 else:
                     self.players.append(name)
+                    self.logger.info(f"Adding player {name}")
             elif isinstance(name, list):
                 # unwrap list and pass to add_players again
                 self.add_players(*name)
@@ -80,70 +88,77 @@ class Game:
             amount: int -- the amount of players with the given role
         """
         self.role_count[role] = amount
+        self.logger.info(f'Setting amount of {role} role to {amount}')
 
     @started(False)
     def start(self) -> bool:
         """Start the game and return succes boolean."""
 
         # Determine playercount
-        logging.info('Determining player count')
         self.player_count = len(self.players)
+        self.logger.info(f"number of players is {self.player_count}")
         if self.player_count == 0:
-            logging.warning('No players in current game. Failed to start game.')
+            self.logger.warning('No players in current game. Failed to start game.')
             return False
 
         # create lookup dictionary of player ids
-        logging.info('Creating Lookup dictionary for player indices')
+        self.logger.info('Creating Lookup dictionary for player indices')
         self.player_ids = {player: player_id for player_id, player in enumerate(self.players)}
 
         # Generate permutation list for anomymous printing in print_probabilities()
-        logging.info('Generating random permutation of players for anonimity in tables')
         self.print_permutation = list(range(self.player_count))
         shuffle(self.print_permutation)
+        self.logger.info(f'Random player order in tables is {self.print_permutation}')
 
         # Determine (valid) amount of villager in the game
-        logging.info('Determining amount of villagers')
         villager_count = self.player_count - sum(self.role_count.values())
+        self.logger.info(f'Number of villagers is {villager_count}')
         if villager_count < 0:
-            logging.warning("Too many roles for number of players. Failed to start game.")
+            self.logger.warning("Too many roles for number of players. Failed to start game.")
             return False
         self.role_count['villager'] = villager_count
 
         # Sets the list of roles
-        logging.info('Setting the list of roles used')
         self.used_roles = [role for role, count in self.role_count.items() if count > 0]
-        logging.info('Determining the number of living werewolves')
+        self.logger.info(f'Roles used in game are {self.used_roles}')
+
         self.werewolf_count = self.role_count['werewolf']
+        self.logger.info(f'Number of living werewolves is {self.werewolf_count}')
 
         # Generates the list of all role permutations
-        logging.info('Generating all role permutations')
+        self.logger.info('Generating all role permutations')
         roles = [role for role, count in self.role_count.items() for _ in range(count)]
+        self.logger.debug(f'role frequencies: {roles}')
         self.permutations = {p: True for p in permutations(roles)}
+        # self.permutations = {p: True for p in permutations(roles) if random() < self.permutation_fraction}
+        self.logger.debug(f'number of permutations: {len(self.permutations)}')
 
         # Set all players to be fully alive
-        logging.info('Initializing death tracking')
+        self.logger.info('Initializing death tracking')
         self.deaths = []
         for i in range(self.player_count):
             self.deaths += [[0] * self.player_count]
+        self.logger.debug(f'deaths table: {self.deaths}')
         self.killed = [False] * self.player_count
+        self.logger.debug(f'killed list: {self.killed}')
 
         # create list of cupid lovers
-        logging.info('Initializing cupids lover tracking')
+        self.logger.info('Initializing cupids lover tracking')
         self.lovers_list = {}
 
         # start game
-        logging.info('Set Game.started to True')
+        self.logger.info('Set Game.started to True')
         self.started = True
 
-        logging.info('Returning success')
+        self.logger.info('Returning success')
         return True
 
-    @started
+    @started()
     def stop(self) -> None:
         """Stop the game."""
         self.started = False
         # TODO: delete game state objects?
-        logging.info("Game stopped.")
+        self.logger.info("Game stopped.")
         return True
 
     def reset(self) -> None:
@@ -153,9 +168,9 @@ class Game:
         self.role_count = Game.default_roles.copy()
         if self.started:
             self.stop()
-        logging.info("Game reset.")
+        self.logger.info("Game reset.")
 
-    @started
+    @started()
     def valid_permutations(self) -> List[List[str]]:
         """Return all possible game states."""
         return [p for p in self.permutations if self.permutations[p]]
@@ -180,7 +195,7 @@ class Game:
         """Return all players that are still alive."""
         return [player for player_id, player in enumerate(self.players) if self.killed[player_id] == 0]
 
-    @started
+    @started()
     def calculate_probabilities(self) -> Tuple[dict, ...]:
         """Return table of probability per role per player."""
         p_list = self.valid_permutations()
@@ -194,14 +209,14 @@ class Game:
             probs.append(player_probs)
         return tuple(probs)
 
-    @started
+    @started()
     def cupid(self, cupid: str, lover1: str, lover2: str) -> None:
         """Perform cupid action for a player. Records the lover pair in Game.lovers_list."""
         cupid_id = self._id(cupid)
         lovers = (self._id(lover1), self._id(lover2))
         self.lovers_list[cupid_id] = lovers
 
-    @started
+    @started()
     def seer(self, seer: str, target: str) -> str:
         """Perform the seer action for a players. Return target's role and collapse game state..
 
@@ -215,27 +230,28 @@ class Game:
         # Check if player and target are alive and player can be the seer
         assert self.killed[seer_id] != 1, "ERROR: in seer() seer {} is dead.".format(seer)
         assert self.killed[target_id] != 1, "ERROR: in seer() target {} is dead.".format(target)
-        assert self.probs[seer_id]['seer'] != 0, "ERROR: in seer() {}'s seer probability is 0.".format(seer)
+        # assert self.probs[seer_id]['seer'] != 0, "ERROR: in seer() {}'s seer probability is 0.".format(seer)
 
         # Player is allowed to take the action
-        logging.info("{} is investigating {} ...".format(seer, target))
-        p_list = [p for p in self.permutations if p[seer_id] == 'seer' and self.permutations[p]]
+        self.logger.info("{} is investigating {} ...".format(seer, target))
+        p_list = self.valid_permutations()
+        projection = [p for p in p_list if p[seer_id] == 'seer']
 
         # Choose an outcome
-        assert p_list, "ERROR: seer list is empty"
-        target_role = choice(p_list)[target_id]
+        assert projection, f"ERROR: seer list is empty\n {p_list}"
+        target_role = choice(projection)[target_id]
 
         # Collapse the wave function
-        for p in p_list:
+        for p in projection:
             if p[target_id] != target_role:
                 self.permutations[p] = False
 
         # Report on results
-        logging.info(f"{seer} sees that {target} is a {target_role}!")
+        self.logger.info(f"{seer} sees that {target} is a {target_role}!")
 
         return target_role
 
-    @started
+    @started()
     def kill(self, target: str) -> str:
         """Kill and identify a player. Return the player's role and collapses the game state.
 
@@ -245,10 +261,10 @@ class Game:
         target_id = self._id(target)
         assert self.killed[target_id] != 1, "ERROR:in kill() target {} is already dead.".format(target)
 
-        logging.info("{} was killed!".format(target))
+        self.logger.info("{} was killed!".format(target))
 
         # Chooses an outcome
-        p_list = [p for p in self.permutations if self.permutations[p]]
+        p_list = self.valid_permutations()
         result = choice(p_list)
         target_role = result[target_id]
 
@@ -258,7 +274,7 @@ class Game:
                 self.permutations[p] = False
 
         # Report on results
-        logging.info(f"{target} was a {target_role}!")
+        self.logger.info(f"{target} was a {target_role}!")
 
         # Deal with the case that the dead person is a werewolf
         if target_role == "werewolf":
@@ -270,7 +286,7 @@ class Game:
 
         return target_role
 
-    @started
+    @started()
     def check_deaths(self) -> List[str]:
         """Return names of players that have died since last check."""
         killed_players = []
@@ -364,7 +380,7 @@ class Game:
         return P_dead
     """
 
-    @started
+    @started()
     def werewolf(self, werewolf, target):
         """Perform werewolf action for a player. Mark the attack in Game.deaths.
         Optionally collapses the game to exclude werewolves targeting werewolves.
@@ -380,7 +396,7 @@ class Game:
         target_id = self._id(target)
         assert self.killed[werewolf_id] != 1, "ERROR: in werewolf() werewolf {} is dead".format(werewolf)
         assert self.killed[target_id] != 1, "ERROR: in werewolf() target {} is dead".format(target)
-        assert self.probs[werewolf_id]['werewolf'] != 0, "ERROR: in werewolf() {}'s werewolf probability is 0".format(target)
+        # assert self.probs[werewolf_id]['werewolf'] != 0, "ERROR: in werewolf() {}'s werewolf probability is 0".format(target)
 
         self.deaths[target_id][werewolf_id] = 1 / self.werewolf_count
 
@@ -391,7 +407,7 @@ class Game:
                 if p[werewolf_id] == 'werewolf' and p[target_id] == 'werewolf':
                     self.permutations[p] = False
 
-    @started
+    @started()
     def other_werewolves(self, werewolf: str) -> List[dict]:
         """Returns a table of players and their probabilities to be a werewolf simultaneously as a given werewolf.
 
@@ -416,7 +432,7 @@ class Game:
 
         return probs
 
-    @started
+    @started()
     def other_lover(self, player: str) -> List[dict]:
         """Return table of players and their probabilities to be the lover of a given player.
 
@@ -443,7 +459,7 @@ class Game:
 
         return probs
 
-    @started
+    @started()
     def check_win(self) -> Tuple[bool, str]:
         """Return wether any win condition is met and if so the faction that won."""
         all_dead = True
@@ -468,15 +484,15 @@ class Game:
                         lover_win = False
 
         if all_dead:
-            logging.info('the game is a tie')
+            self.logger.info('the game is a tie')
             return True, None
         if villager_win:
-            logging.info('The villagers win')
+            self.logger.info('The villagers win')
             return True, 'villagers'
         if werewolf_win:
-            logging.info('The werewolves win')
+            self.logger.info('The werewolves win')
             return True, 'werewolves'
         if lover_win:
-            logging.info('The lovers win')
+            self.logger.info('The lovers win')
             return True, 'lovers'
         return False, None
