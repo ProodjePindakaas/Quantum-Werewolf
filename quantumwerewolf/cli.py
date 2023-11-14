@@ -3,8 +3,10 @@ from os import system
 from quantumwerewolf.backend import Game
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
 
+# TODO: take Game class as mutable gamestate instead of subclassing
 class CliGame(Game):
 
     # Define colors
@@ -91,7 +93,7 @@ class CliGame(Game):
 
     # Gives the table of probabilities
     def print_probability_table(self):
-        probabilities = self.calculate_probabilities()
+        probabilities = self.role_probabilities()
 
         header_line = f"{'player':>12s}"
         for role in self.used_roles:
@@ -111,7 +113,7 @@ class CliGame(Game):
             print(line)
 
     def print_probability_bars(self, game_over=False):
-        probabilities = self.calculate_probabilities()
+        probabilities = self.role_probabilities()
 
         for i in self.print_permutation:
             p = probabilities[i]
@@ -133,6 +135,7 @@ class CliGame(Game):
         print(f'    {player} was {self.role_preposition[player_role]}{player_role}')
         return player_role
 
+    # TODO: move to backend
     def process_deaths(self, killed_players):
         # kill all players that died
         hunter = None
@@ -154,14 +157,126 @@ class CliGame(Game):
             killed_players = self.check_deaths()
             self.process_deaths(killed_players)
 
-
     def print_win(self):
         win, winners = self.check_win()
         if win:
-            print(f"\n\n{self.bold}THE {winners.upper()} WIN!{self.normal}\n")
+            if winners is None:
+                print("THE GAME IS A TIE!")
+            else:
+                print(f"\n\n{self.bold}THE {winners.upper()} WIN!{self.normal}\n")
             self.print_probability_bars(game_over=True)
             self.stop()
         return win
+
+    def get_players(self):
+        # Get player names
+        print("Enter player name(s) separated by spaces.")
+        print("Enter no name to continue.")
+        new_player = True
+        while new_player:
+            names = input("  Name(s): ")
+            if names != '':
+                self.add_players(names.split())
+            else:
+                new_player = False
+
+    def print_players(self):
+        # display players
+        print("Current Players:")
+        for i, p in enumerate(self.players):
+            print(" {}: {}".format(i+1, p))
+
+    def get_deck(self):
+        def set_role(role, amount):
+            def set_role_value():
+                self.set_role(role, amount)
+            return set_role_value
+
+        def ask_roles():
+            # ask for new roles
+            for role in self.role_count.keys():
+                if role == 'werewolf':
+                    self.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
+                else:
+                    self.ask_yesno(f'Include {role}?', set_role(role, 1), set_role(role, 0))
+
+        # display default deck
+        print("\nPlay with following roles?")
+        for (role, count) in self.role_count.items():
+            if count == 1:
+                suffix = ''
+            else:
+                suffix = 's'
+            print(" {} {}{}".format(count, role, suffix))
+        self.ask_yesno('', "roles confirmed!",  ask_roles)
+
+    # TODO: move to backend
+    def start_day(self):
+        killed_players = self.check_deaths()
+        self.process_deaths(killed_players)
+
+    # TODO: move to backend
+    def end_day(self, lynch_target):
+        self.process_deaths([lynch_target])
+
+    def get_player_actions(self, player, player_role_probabilities, player_other_werewolves, player_other_lover):
+        self.logger.debug(f"running get_player_actions({player}, {player_role_probabilities}, {player_other_werewolves}, {player_other_lover})")
+        player_actions = {}
+        # cupid
+        if 'cupid' in self.used_roles:
+            if self.turn_counter == 1 and player_role_probabilities['cupid'] != 0:
+                # query cupid action
+                first_lover = self.ask_player(f'\n  {self.boldblue}[CUPID]{self.normal} Who do you choose as first lover?\n    ')
+                second_lover = self.ask_player(f'  {self.boldblue}[CUPID]{self.normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
+                player_actions['cupid'] = (first_lover, second_lover)
+                print(f'    {first_lover} and {second_lover} are now lovers')
+            else:
+                # print lover probabilities
+                print(f'\n  {self.boldblue}[CUPID]{self.normal} Your lover is:')
+                for p in player_other_lover:
+                    name = p['name']
+                    chance = p['lover']
+                    if name != player:
+                        length = round(chance * self.bar_length)
+                        print(f'    {name:>12s}: {100*chance:3.0f}% {self.boldblue}{"L" * length}{self.normal}')
+
+        # seer
+        if 'seer' in self.used_roles and player_role_probabilities['seer'] != 0:
+            target = self.ask_player(f'\n  {self.boldpink}[SEER]{self.normal} Whose role do you inspect?\n    ')
+            target_role = self.seer(player, target, project=False)
+            player_actions['seer'] = (target, target_role)
+            print(f'    {target} is {self.role_preposition[target_role]}{target_role}')
+
+        # werewolf
+        if 'werewolf' in self.used_roles and player_role_probabilities['werewolf'] != 0:
+            invalid_players = [player]
+            # print other werewolves
+            print(f'\n  {self.boldred}[WEREWOLF]{self.normal} Your fellow werewolves are:')
+            for p in player_other_werewolves:
+                name = p['name']
+                chance = p['werewolf']
+                if name != player:
+                    length = round(chance * self.bar_length)
+                    print(f'    {name:>12s}: {100*chance:3.0f}% {self.boldred}{"W"*length}{self.normal}')
+                if chance == 1 and p in self.living_players():
+                    invalid_players.append(p)
+
+            if self.living_players() != invalid_players:
+                # do werewolf action
+                target = self.ask_player(f'\n  {self.boldred}[WEREWOLF]{self.normal} Who do you attack?\n    ', invalid_players=invalid_players)
+                player_actions['werewolf'] = (target)
+
+        return player_actions
+
+    def print_player_role(self, player_probabilities):
+        # display game and player info (role superposition)
+        print(f'\n  {self.underline}Your role:{self.normal}')
+        for role in self.used_roles:
+            style = self.role_style[role]
+            letter = role[0].capitalize()
+            chance = player_probabilities[role]
+            length = round(chance * self.bar_length)
+            print(f"    {style}{role:>8s}: {100*chance:3.0f}% |{letter * length:<{self.bar_length}}|{self.normal}")
 
 
 def cli():
@@ -169,142 +284,60 @@ def cli():
     g = CliGame()
 
     system('clear')
-
-    print("Enter player name(s) separated by spaces.")
-    print("Enter no name to continue.")
-
-    # Get player names
-    new_player = True
-    while new_player:
-        names = input("  Name(s): ")
-        if names != '':
-            g.add_players(names.split())
-        else:
-            new_player = False
-
+    g.get_players()
     system('clear')
-
-    print("Current Players:")
-    for i, p in enumerate(g.players):
-        print(" {}: {}".format(i+1, p))
-
-    # Set the deck
-    print("\nPlay with following roles?")
-    for (role, count) in g.role_count.items():
-        if count == 1:
-            suffix = ''
-        else:
-            suffix = 's'
-        print(" {} {}{}".format(count, role, suffix))
-
-    def set_role(role, amount):
-        def set_seer_value():
-            g.set_role(role, amount)
-        return set_seer_value
-
-    def ask_roles():
-        # ask for new roles
-        for role in g.role_count.keys():
-            if role == 'werewolf':
-                g.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
-            else:
-                g.ask_yesno(f'Include {role}?', set_role(role, 1), set_role(role, 0))
-
-    g.ask_yesno('', "roles confirmed!",  ask_roles)
-
+    g.print_players()
+    g.get_deck()
     system('clear')
-
-    # Start game
     g.start()
 
     # loop turns for every player
-    turn_counter = 0
     while g.started:
-        turn_counter += 1
+        g.turn_counter += 1
+
         # night
         system('clear')
         print('Night falls and all players take their actions in turns privately\n')
 
-        start_probabilities = g.calculate_probabilities()
-        start_other_werewolves = [g.other_werewolves(p) for p in g.players]
-        if turn_counter > 1:
-            start_other_lover = [g.other_lover(p) for p in g.players]
+        start_probabilities = g.role_probabilities()
 
-        for i, p in enumerate(g.players):
+        # collect all player actions
+        actions = {}
+        for player_id, player in enumerate(g.players):
+            player_role_probabilities = start_probabilities[player_id]
+            player_other_lover = g.other_lover(player)
+            player_other_werewolves = g.other_werewolves(player)
 
             # if player is dead skip turn
-            if g.killed[i] == 1:
+            if g.killed[player_id] == 1:
                 continue
 
-            input("{}'s turn (press ENTER to continue)".format(p))
+            input(f"{player}'s turn (press ENTER to continue)")
             system('clear')
-            print("{}'s turn".format(p))
+            print(f"{player}'s turn")
 
-            # display game and player info (role superposition)
-            player_probabilities = start_probabilities[i]
+            g.print_player_role(player_role_probabilities)
 
-            print(f'\n  {g.underline}Your role:{g.normal}')
-            for role in g.used_roles:
-                style = g.role_style[role]
-                letter = role[0].capitalize()
-                chance = player_probabilities[role]
-                length = round(chance * g.bar_length)
-                print(f"    {style}{role:>8s}: {100*chance:3.0f}% |{letter * length:<{g.bar_length}}|{g.normal}")
+            player_actions = g.get_player_actions(player, player_role_probabilities, player_other_werewolves, player_other_lover)
 
-            # cupid
-            if 'cupid' in g.used_roles:
-                if turn_counter == 1 and 'cupid' and player_probabilities['cupid'] != 0:
-                    first_lover = g.ask_player(f'\n  {g.boldblue}[CUPID]{g.normal} Who do you choose as first lover?\n    ')
-                    second_lover = g.ask_player(f'  {g.boldblue}[CUPID]{g.normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
-                    g.cupid(p, first_lover, second_lover)
-                    print(f'    {first_lover} and {second_lover} are now lovers')
-                else:
-                    # print lover probabilities
-                    print(f'\n  {g.boldblue}[CUPID]{g.normal} Your lover is:')
-                    player_other_lover = start_other_lover[i]
-                    for player in player_other_lover:
-                        name = player['name']
-                        chance = player['lover']
-                        if name != p:
-                            length = round(chance * g.bar_length)
-                            print(f'    {name:>12s}: {100*chance:3.0f}% {g.boldblue}{"L" * length}{g.normal}')
-
-            # seer
-            if 'seer' in g.used_roles and player_probabilities['seer'] != 0:
-                target = g.ask_player(f'\n  {g.boldpink}[SEER]{g.normal} Whose role do you inspect?\n    ')
-                target_role = g.seer(p, target)
-                print(f'    {target} is {g.role_preposition[target_role]}{target_role}')
-
-            # werewolf
-            if 'werewolf' in g.used_roles and player_probabilities['werewolf'] != 0:
-                # print other werewolves
-                print(f'\n  {g.boldred}[WEREWOLF]{g.normal} Your fellow werewolves are:')
-                player_other_werewolves = start_other_werewolves[i]
-                for player in player_other_werewolves:
-                    name = player['name']
-                    chance = player['werewolf']
-                    if name != p:
-                        length = round(chance * g.bar_length)
-                        print(f'    {name:>12s}: {100*chance:3.0f}% {g.boldred}{"W"*length}{g.normal}')
-
-                # do werewolf action
-                target = g.ask_player(f'\n  {g.boldred}[WEREWOLF]{g.normal} Who do you attack?\n    ')
-                g.werewolf(p, target)
+            # pass the actions for the player
+            actions[player] = player_actions
 
             input("\n(press ENTER to continue)")
 
             system('clear')
+
+        # process actions
+        g.logger.debug(g.valid_permutations())
+        g.process_night(actions)
+        g.logger.debug(g.valid_permutations())
 
         # day
         input('All player have had their turn (press ENTER to continue)')
         system('clear')
         print('The day begins')
 
-        def start_day():
-            killed_players = g.check_deaths()
-            g.process_deaths(killed_players)
-
-        start_day()
+        g.start_day()
 
         # check win before the vote
         if g.print_win():
@@ -316,10 +349,7 @@ def cli():
         # vote
         lynch_target = g.ask_player(f'\n  {g.boldyellow}[ALL VILLAGERS]{g.normal} Who do you lynch?\n    ')
 
-        def end_day(lynch_target):
-            g.process_deaths([lynch_target])
-
-        end_day(lynch_target)
+        g.end_day(lynch_target)
 
         # check win after the vote
         if g.print_win():
