@@ -49,6 +49,7 @@ class CliGame(Game):
         }
 
     bar_length = 24
+    name_length = 12
 
     def ask_yesno(self, query, yes, no):
         answer = input(query + ' (yes/no) ')
@@ -95,7 +96,7 @@ class CliGame(Game):
     def print_probability_table(self):
         probabilities = self.role_probabilities()
 
-        header_line = f"{'player':>12s}"
+        header_line = f"{'player':>{self.name_length}s}"
         for role in self.used_roles:
             header_line += f"{role:>12s}"
         header_line += f"{'dead':>12s}"
@@ -106,7 +107,7 @@ class CliGame(Game):
             name = '???'
             if p['dead'] == 1:
                 name = p['name']
-            line = f"{str(name):>12s}"
+            line = f"{str(name):>{self.name_length}s}"
             for role in self.used_roles:
                 line += f"{100*p[role]:11.0f}%"
             line += f"{100*p['dead']:11.0f}%"
@@ -120,7 +121,7 @@ class CliGame(Game):
             name = '???'
             if p['dead'] == 1 or game_over:
                 name = p['name']
-            line = f"{str(name):>12s}    "
+            line = f"{str(name):>{self.name_length}}    "
             for role in self.used_roles:
                 chance = p[role]
                 letter = role[0].capitalize()
@@ -170,21 +171,25 @@ class CliGame(Game):
 
     def get_players(self):
         # Get player names
-        print("Enter player name(s) separated by spaces.")
+        print("Enter player name(s)")
         print("Enter no name to continue.")
         new_player = True
         while new_player:
-            names = input("  Name(s): ")
-            if names != '':
-                self.add_players(names.split())
-            else:
+            name = input("  Name(s): ")
+            if name == '':
                 new_player = False
+            elif not name.isalpha():
+                print(f"{self.red}Name may only contain letters{self.normal}")
+            elif len(name) > self.name_length:
+                print(f"{self.red}Name cannot be longer than 12 characters{self.normal}")
+            else:
+                self.add_players(name)
 
     def print_players(self):
         # display players
         print("Current Players:")
         for i, p in enumerate(self.players):
-            print(" {}: {}".format(i+1, p))
+            print("{:3d}: {}".format(i+1, p))
 
     def get_deck(self):
         def set_role(role, amount):
@@ -238,7 +243,7 @@ class CliGame(Game):
                     chance = p['lover']
                     if name != player:
                         length = round(chance * self.bar_length)
-                        print(f'    {name:>12s}: {100*chance:3.0f}% {self.boldblue}{"L" * length}{self.normal}')
+                        print(f'    {name:>{self.name_length}}: {100*chance:3.0f}% {self.boldblue}{"L" * length}{self.normal}')
 
         # seer
         if 'seer' in self.used_roles and player_role_probabilities['seer'] != 0:
@@ -257,7 +262,7 @@ class CliGame(Game):
                 chance = p['werewolf']
                 if name != player:
                     length = round(chance * self.bar_length)
-                    print(f'    {name:>12s}: {100*chance:3.0f}% {self.boldred}{"W"*length}{self.normal}')
+                    print(f'    {name:>{self.name_length}}: {100*chance:3.0f}% {self.boldred}{"W"*length}{self.normal}')
                 if chance == 1 and p in self.living_players():
                     invalid_players.append(p)
 

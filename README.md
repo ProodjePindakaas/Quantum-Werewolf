@@ -9,7 +9,7 @@ https://web.archive.org/web/20181116123708/https://puzzle.cisra.com.au/2008/quan
 
 ## Installation
 
-Not packaged yet.
+`$ pip install git+https://github.com/ProodjePindakaas/Quantum-Werewolf`
 
 ## Usage
 
