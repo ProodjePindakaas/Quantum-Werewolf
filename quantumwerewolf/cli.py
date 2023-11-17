@@ -69,18 +69,26 @@ class CliGame(Game):
 
     def ask_player(self, query, invalid_players=[]):
         answer = input(query + 'Name: ')
+
+        if answer.isdigit():
+            i = int(answer) - 1
+            if i in range(self.player_count):
+                answer = self.players[i]
+
         valid_players = self.living_players()
         for player in invalid_players:
             valid_players.remove(player)
+
         if not valid_players:
             return None
+
         if answer in valid_players:
             return answer
         else:
-            print('  "{}" is not a valid choice'.format(answer))
-            print('  Valid players are:')
+            print(f'    {self.red}"{answer}" is not a valid choice{self.normal}')
+            print('    Valid players are:')
             for i, p in enumerate(valid_players):
-                print("    {}".format(p))
+                print("      {}".format(p))
 
             return self.ask_player(query, invalid_players=invalid_players)
 
@@ -133,7 +141,7 @@ class CliGame(Game):
     def print_kill(self, player, cause=''):
         player_role = self.kill(player)
         print(f'\n  {player} was killed {cause}')
-        print(f'    {player} was {self.role_preposition[player_role]}{player_role}')
+        print(f'    {player} was {self.role_preposition[player_role]}{player_role}\n')
         return player_role
 
     # TODO: move to backend
@@ -179,9 +187,9 @@ class CliGame(Game):
             if name == '':
                 new_player = False
             elif not name.isalpha():
-                print(f"{self.red}Name may only contain letters{self.normal}")
+                print(f"\033[F{self.red}  Name may only contain letters{self.normal}")
             elif len(name) > self.name_length:
-                print(f"{self.red}Name cannot be longer than 12 characters{self.normal}")
+                print(f"\033[F{self.red}  Name cannot be longer than 12 characters{self.normal}")
             else:
                 self.add_players(name)
 
@@ -189,7 +197,15 @@ class CliGame(Game):
         # display players
         print("Current Players:")
         for i, p in enumerate(self.players):
-            print("{:3d}: {}".format(i+1, p))
+            print(f"{i+1:3d}: {p}")
+
+    def print_live_players(self):
+        # display live players
+        print(f"  {self.underline}Live Players:{self.normal}")
+        live_players = self.living_players()
+        for i, p in enumerate(self.players):
+            if p in live_players:
+                print(f"  {i+1:3d}: {p}")
 
     def get_deck(self):
         def set_role(role, amount):
@@ -319,7 +335,9 @@ def cli():
 
             input(f"{player}'s turn (press ENTER to continue)")
             system('clear')
-            print(f"{player}'s turn")
+            print(f"{player}'s turn\n")
+
+            g.print_live_players()
 
             g.print_player_role(player_role_probabilities)
 
