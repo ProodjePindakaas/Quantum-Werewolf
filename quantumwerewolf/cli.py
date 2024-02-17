@@ -70,7 +70,7 @@ class CliGame(Game):
     def ask_player(self, query, invalid_players=[]):
         answer = input(query + 'Name: ')
 
-        if answer.isdigit():
+        if answer.isdecimal():
             i = int(answer) - 1
             if i in range(self.player_count):
                 answer = self.players[i]
