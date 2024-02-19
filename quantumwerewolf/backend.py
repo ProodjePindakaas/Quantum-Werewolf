@@ -4,7 +4,7 @@ from itertools import permutations
 from random import shuffle, choice
 from functools import wraps
 from typing import Callable, List, Tuple, Union
-from math import sqrt
+from math import factorial
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class Game:
         self.logger = logging.getLogger(__name__)
         # optional rules
         self.werewolf_cannot_eat_werewolf = False
-        self.max_permutations = 20
+        self.start_with_subset = True
 
     # HELPER FUNCTIONS
 
@@ -73,15 +73,6 @@ class Game:
             player_id: str -- index of player in Game.add_players
         """
         return self.players[player_id]
-
-    def expected_total_deviation(self):
-        """Return the total expected role ratio deviation.
-
-            $$ TD = \\sum_{role} \\sqrt{p_{role} (1 - p_{role})} $$
-        """
-        ratios = [count / self.player_count for count in self.role_count.values()]
-        deviations = [sqrt(p * (1 - p)) for p in ratios]
-        return sum(deviations)
 
     # SETUP METHODS
 
@@ -121,6 +112,32 @@ class Game:
         self.role_count[role] = amount
         self.logger.info(f'Setting amount of {role} role to {amount}')
 
+    def generate_all_permutations(self):
+        self.logger.info('Generating all role permutations')
+        roles = [role for role, count in self.role_count.items() for _ in range(count)]
+        self.logger.debug(f'role frequencies: {roles}')
+        self.permutations = {p: True for p in permutations(roles)}
+
+    def _max_permutations(self):
+        number = factorial(self.player_count)
+        for n in self.role_count.values():
+            number /= factorial(n)
+        return number
+
+    def _subset_size(self):
+        max_subset_size = self._max_permutations()
+        return min(self.player_count + 2, max_subset_size)
+
+    def generate_subset_permutations(self):
+        self.logger.info('Generating subset of role permutations')
+        roles = [role for role, count in self.role_count.items() for _ in range(count)]
+        self.logger.debug(f'role frequencies: {roles}')
+        n_permutations = self._subset_size()
+        self.permutations = {}
+        while len(self.permutations) < n_permutations:
+            shuffle(roles)
+            self.permutations[tuple(roles)] = True
+
     @started(False)
     def start(self) -> bool:
         """Start the game and return succes boolean."""
@@ -157,17 +174,12 @@ class Game:
         self.werewolf_count = self.role_count['werewolf']
         self.logger.info(f'Number of live werewolves is {self.werewolf_count}')
 
-        # Generates the list of all role permutations
-        self.logger.info('Generating all role permutations')
-        roles = [role for role, count in self.role_count.items() for _ in range(count)]
-        self.logger.debug(f'role frequencies: {roles}')
-        # full permutation game
-        self.permutations = {p: True for p in permutations(roles)}
-        # random subset game
-        # self.permutations = {p: True for p in permutations(roles) if random() < self.permutation_fraction}
-        # optimal deviation game
-        # n_permutations =  (self.expected_total_deviation() / optimal_total_deviation) ** 2
-        # self.permutations = {shuffle(roles).copy(): True for _ in range(n_permutations)}
+        # Generates the list of role permutations
+        if self.start_with_subset:
+            self.generate_subset_permutations()
+        else:
+            self.generate_full_permutations()
+
         self.logger.debug(f'number of permutations: {len(self.permutations)}')
 
         # Set all players to be fully alive
