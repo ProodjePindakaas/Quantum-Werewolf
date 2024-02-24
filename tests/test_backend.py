@@ -111,6 +111,7 @@ class TestGameStarted(TestCase):
         self.game = Game()
         self.names = ['Alice', 'Bob', 'Craig', 'David']
         self.game.add_players(self.names)
+        self.game.start_with_subset = False
         self.game.start()
 
     def tearDown(self):
