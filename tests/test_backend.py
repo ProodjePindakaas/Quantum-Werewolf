@@ -154,7 +154,7 @@ class TestGameStarted(TestCase):
 
     def test_calculate_probabilities(self):
         # check results at start of the a game
-        result_start = self.game.calculate_probabilities()
+        result_start = self.game.role_probabilities()
         for player_result in result_start:
             self.assertIn('name', player_result)
             self.assertIn(player_result['name'], self.game.players)
