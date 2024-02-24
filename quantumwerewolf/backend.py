@@ -178,7 +178,7 @@ class Game:
         if self.start_with_subset:
             self.generate_subset_permutations()
         else:
-            self.generate_full_permutations()
+            self.generate_all_permutations()
 
         self.logger.debug(f'number of permutations: {len(self.permutations)}')
 
