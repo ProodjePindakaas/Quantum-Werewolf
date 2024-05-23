@@ -154,7 +154,7 @@ class CliGame(Game):
         # kill all players that died
         hunter = None
         for player in killed_players:
-            player_role = self.print_kill(player, 'during the night')
+            player_role = self.print_kill(player, '')
             if player_role == 'hunter':
                 hunter = player
 
