@@ -48,7 +48,7 @@ class CliGame(Game):
         'cupid': '',
         }
 
-    bar_length = 24
+    bar_length = 36
     name_length = 12
 
     def ask_yesno(self, query, yes, no):
@@ -130,10 +130,15 @@ class CliGame(Game):
             if p['dead'] == 1 or game_over:
                 name = p['name']
             line = f"{str(name):>{self.name_length}}    "
+            total_chance = 0.0
+            total_length = 0
             for role in self.used_roles:
-                chance = p[role]
                 letter = role[0].capitalize()
-                length = round(chance * self.bar_length)
+                chance = p[role]
+                total_chance += chance
+                total_length_new = round(total_chance * self.bar_length)
+                length = total_length_new - total_length
+                total_length = total_length_new
                 line += f"{self.role_style_bold[role]}{letter * length}"
             line += f"{self.normal}{100*p['dead']:11.0f}% dead"
             print(line)
