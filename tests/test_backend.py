@@ -16,7 +16,6 @@ UNIT TESTS
 """
 
 from quantumwerewolf.backend import Game
-from math import factorial
 from unittest import TestCase, main
 import logging
 
@@ -65,6 +64,7 @@ class TestGame(TestCase):
         # test succesful start
         names = ['Alice', 'Bob', 'Craig', 'David']
         self.game.add_players(names)
+        self.game.start_with_subset = False
         self.assertTrue(self.game.start())
 
         # test state of game
@@ -90,9 +90,7 @@ class TestGame(TestCase):
         self.assertEqual(self.game.role_count['villager'], 1)
 
         # test number of permutations
-        n_perm = factorial(self.game.player_count)
-        for i in self.game.role_count.values():
-            n_perm /= factorial(i)
+        n_perm = self.game._max_permutations()
 
         self.assertEqual(len(self.game.permutations), n_perm)
 
@@ -111,6 +109,7 @@ class TestGameStarted(TestCase):
         self.game = Game()
         self.names = ['Alice', 'Bob', 'Craig', 'David']
         self.game.add_players(self.names)
+        self.game.start_with_subset = False
         self.game.start()
 
     def tearDown(self):
@@ -154,7 +153,7 @@ class TestGameStarted(TestCase):
 
     def test_calculate_probabilities(self):
         # check results at start of the a game
-        result_start = self.game.calculate_probabilities()
+        result_start = self.game.role_probabilities()
         for player_result in result_start:
             self.assertIn('name', player_result)
             self.assertIn(player_result['name'], self.game.players)

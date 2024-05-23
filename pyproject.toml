@@ -4,10 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantumwerewolf"
-version = "0.3"
+version = "3.2.1"
+requires-python = ">=3.8"
 description = "Quantum version of the werewolves party game."
 readme = "README.md"
-requires-python = ">=3.7"
+license = {file = "LICENSE"}
+keywords = ["quantum", "werewolf", "werewolves", "game"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -17,8 +19,8 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-quantum-werewolf = "quantumwerewolf.cli:cli"
+quantumwerewolf = "quantumwerewolf.cli:cli"
 
 [project.urls]
-"Homepage" = "https://github.com/JesseStraat/Quantum-Werewolf"
-"Bug Tracker" = "https://github.com/JesseStraat/Quantum-Werewolf/issues"
+"Homepage" = "https://github.com/ProodjePindakaas/Quantum-Werewolf"
+"Bug Tracker" = "https://github.com/ProodjePindakaas/Quantum-Werewolf/issues"
