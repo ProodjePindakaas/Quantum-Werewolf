@@ -192,16 +192,16 @@ class CliGame(Game):
             name = input(f"  Name player {self.player_count + 1}: ")
             if name == '':
                 if self.player_count < 3:
-                    print(f'\033[F{self.red}  This game needs at least 3 players to play! Add more players.{self.normal}')
+                    print(f'\033[F{self.red}  This game needs at least 3 players to play! Add more players.{self.normal}\033[K')
                 else:
                     new_player = False
             elif not name.isalpha():
-                print(f"\033[F{self.red}  Name may only contain letters!{self.normal}")
+                print(f"\033[F{self.red}  Name may only contain letters!{self.normal}\033[K")
             elif len(name) > self.name_length:
-                print(f"\033[F{self.red}  Name cannot be longer than 12 characters!{self.normal}")
+                print(f"\033[F{self.red}  Name cannot be longer than 12 characters!{self.normal}\033[K")
             else:
                 if not self.add_player(name):
-                    print(f"\033[F{self.red}  Name already in use!{self.normal}")
+                    print(f"\033[F{self.red}  Name {name} already in use!{self.normal}\033[K")
 
     def print_players(self):
         # display players
@@ -240,6 +240,7 @@ class CliGame(Game):
         def ask_deck():
             self.logger.debug('running ask_deck()')
             # ask for new roles
+            print('')
             deck = {}
             for role in self.default_deck.keys():
                 if role == 'werewolf':
