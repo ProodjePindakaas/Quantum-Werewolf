@@ -52,20 +52,21 @@ class CliGame(Game):
     name_length = 12
 
     def ask_yesno(self, query, yes, no):
+        self.logger.debug(f'running ask_yesno({query}, {yes}, {no})')
         answer = input(query + ' (yes/no) ')
         if answer == 'yes' or answer == 'y':
-            if isinstance(yes, str):
-                print(yes)
+            if callable(yes):
+                return yes()
             else:
-                yes()
+                return yes
         elif answer == 'no' or answer == 'n':
-            if isinstance(no, str):
-                print(no)
+            if callable(no):
+                return no()
             else:
-                no()
+                return no
         else:
             print('invalid answer')
-            self.ask_yesno(query, yes, no)
+            return self.ask_yesno(query, yes, no)
 
     def ask_player(self, query, invalid_players=[]):
         answer = input(query + 'Name: ')
@@ -184,19 +185,23 @@ class CliGame(Game):
 
     def get_players(self):
         # Get player names
-        print("Enter player name(s)")
+        print("Enter player names")
         print("Enter no name to continue.")
         new_player = True
         while new_player:
-            name = input("  Name(s): ")
+            name = input(f"  Name player {self.player_count + 1}: ")
             if name == '':
-                new_player = False
+                if self.player_count < 3:
+                    print(f'\033[F{self.red}  This game needs at least 3 players to play! Add more players.{self.normal}')
+                else:
+                    new_player = False
             elif not name.isalpha():
-                print(f"\033[F{self.red}  Name may only contain letters{self.normal}")
+                print(f"\033[F{self.red}  Name may only contain letters!{self.normal}")
             elif len(name) > self.name_length:
-                print(f"\033[F{self.red}  Name cannot be longer than 12 characters{self.normal}")
+                print(f"\033[F{self.red}  Name cannot be longer than 12 characters!{self.normal}")
             else:
-                self.add_players(name)
+                if not self.add_player(name):
+                    print(f"\033[F{self.red}  Name already in use!{self.normal}")
 
     def print_players(self):
         # display players
@@ -212,29 +217,54 @@ class CliGame(Game):
             if p in live_players:
                 print(f"  {i+1:3d}: {p}")
 
-    def get_deck(self):
-        def set_role(role, amount):
-            def set_role_value():
-                self.set_role(role, amount)
-            return set_role_value
-
-        def ask_roles():
-            # ask for new roles
-            for role in self.role_count.keys():
-                if role == 'werewolf':
-                    self.role_count['werewolf'] = int(input('\nNumber of werewolves: '))
+    def print_deck(self, hide_unused=False):
+        for (role, count) in self.deck.items():
+            if count == 0:
+                if hide_unused:
+                    continue
                 else:
-                    self.ask_yesno(f'Include {role}?', set_role(role, 1), set_role(role, 0))
+                    name = role
+                    count = 'no'
+            elif count == 1:
+                name = role
+            elif count > 1:
+                if role == 'werewolf':
+                    name = 'werewolves'
+                else:
+                    name = role + 's'
+            print(f"{count:>4} {name}")
 
-        # display default deck
-        print("\nPlay with following roles?")
-        for (role, count) in self.role_count.items():
-            if count == 1:
-                suffix = ''
+    def get_deck(self):
+        self.logger.debug('running get_deck()')
+
+        def ask_deck():
+            self.logger.debug('running ask_deck()')
+            # ask for new roles
+            deck = {}
+            for role in self.default_deck.keys():
+                if role == 'werewolf':
+                    deck['werewolf'] = self.ask_number('Number of werewolves: ')
+                elif role == 'villager':
+                    continue
+                else:
+                    deck[role] = self.ask_yesno(f'Include {role}?', 1, 0)
+
+            # check for valid deck
+            if self.set_deck(deck):
+                self.logger.debug('Received asked deck. Returning False.')
+                return False
             else:
-                suffix = 's'
-            print(" {} {}{}".format(count, role, suffix))
-        self.ask_yesno('', "roles confirmed!",  ask_roles)
+                print(f"{self.red}Too many roles for numer of players. Try again.{self.normal}")
+                self.logger.debug('Deck not valid. Asking again.')
+                return ask_deck()
+
+        self.set_suggested_deck()
+
+        deck_confirmed = False
+        while deck_confirmed is False:
+            print("\nPlay with following roles?")
+            self.print_deck()
+            deck_confirmed = self.ask_yesno('', True, ask_deck)
 
     # TODO: move to backend
     def start_day(self):

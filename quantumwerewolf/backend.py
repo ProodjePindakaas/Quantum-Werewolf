@@ -23,7 +23,7 @@ class Player:
 class Game:
     """Object keeping track of game state."""
 
-    default_roles = {
+    default_deck = {
             'werewolf': 2,
             'seer': 1,
             'hunter': 0,
@@ -32,13 +32,16 @@ class Game:
 
     def __init__(self):
         self.players = []
-        self.role_count = Game.default_roles.copy()
-        self.player_count = 0
+        self.deck = Game.default_deck.copy()
         self.started = False
         self.logger = logging.getLogger(__name__)
         # optional rules
         self.werewolf_cannot_eat_werewolf = False
         self.start_with_subset = True
+
+    @property
+    def player_count(self):
+        return len(self.players)
 
     # HELPER FUNCTIONS
 
@@ -74,7 +77,20 @@ class Game:
         """
         return self.players[player_id]
 
-    # SETUP METHODS
+    # PLAYERS
+
+    @started(False)
+    def add_player(self, name: str) -> None:
+        self.logger.debug(f"running add_players({name})")
+        # Add names from input and input lists
+        assert isinstance(name, str)
+        if name in self.players:
+            self.logger.debug(f"Player {name} already in self.players. Returning 'False'.")
+            return False
+        else:
+            self.players.append(name)
+            self.logger.debug(f"Added player {name} to self.players. Returning 'True'.")
+            return True
 
     @started(False)
     def add_players(self, *names: Union[str, List[str]]) -> None:
@@ -100,27 +116,62 @@ class Game:
             else:
                 raise ValueError("Wrong data type: must be either string or list of strings")
 
-    @started(False)
-    def set_role(self, role: str, amount: int) -> None:
-        """Set the amount of players to assign a given role to at the start of the game.
+    # DECK
 
-        Arguments:
-            role: str -- name of a role
-            amount: int -- the amount of players with the given role
-        """
-        self.logger.debug(f"running set_role({role}, {amount})")
-        self.role_count[role] = amount
-        self.logger.info(f'Setting amount of {role} role to {amount}')
+    @started(False)
+    def set_deck(self, deck: dict) -> bool:
+        self.logger.debug(f"running set_deck({deck})")
+        if self._valid_deck(deck):
+            self.deck = deck
+            self.logger.debug("Deck set. Returning True")
+            return True
+        self.logger.debug("Deck invalid and not set. Returning False.")
+        return False
+
+    @started(False)
+    def _valid_deck(self, deck: dict) -> bool:
+        self.logger.debug(f"running _valid_deck({deck})")
+        thief_extra_cards = 2 if 'thief' in deck else 0
+        deck_size = self.player_count + thief_extra_cards
+        if 'villager' in deck:
+            role_count = sum([count for role, count in deck.items()])
+            if role_count != deck_size:
+                self.logger.debug(f"{role_count=} does not equal {deck_size=}. Returning False.")
+                return False
+        else:
+            nonvillager_count = sum([count for role, count in deck.items() if role != 'villager'])
+            if nonvillager_count > deck_size:
+                self.logger.debug(f"{nonvillager_count=} is larger than {deck_size=}. Returning False.")
+                return False
+            deck['villager'] = deck_size - nonvillager_count
+        self.logger.debug("Deck is valid. Returning True.")
+        return True
+
+    @started(False)
+    def set_suggested_deck(self) -> None:
+        self.logger.debug("running set_suggested_deck()")
+        if self.player_count < 8:
+            self.logger.warning("It is recommended to play with at least 8 players.")
+        werewolf_count = max(round(self.player_count / 5), 1)
+        self.logger.debug(f"Suggested werewolf count is {werewolf_count}")
+
+        suggested_deck = self.default_deck.copy()
+        suggested_deck['werewolf'] = werewolf_count
+        suggested_deck['seer'] = 1
+
+        self.set_deck(suggested_deck)
+
+    # GAMESTATE
 
     def generate_all_permutations(self):
         self.logger.info('Generating all role permutations')
-        roles = [role for role, count in self.role_count.items() for _ in range(count)]
+        roles = [role for role, count in self.deck.items() for _ in range(count)]
         self.logger.debug(f'role frequencies: {roles}')
         self.permutations = {p: True for p in permutations(roles)}
 
     def _max_permutations(self):
         number = factorial(self.player_count)
-        for n in self.role_count.values():
+        for n in self.deck.values():
             number /= factorial(n)
         return number
 
@@ -130,7 +181,7 @@ class Game:
 
     def generate_subset_permutations(self):
         self.logger.info('Generating subset of role permutations')
-        roles = [role for role, count in self.role_count.items() for _ in range(count)]
+        roles = [role for role, count in self.deck.items() for _ in range(count)]
         self.logger.debug(f'role frequencies: {roles}')
         n_permutations = self._subset_size()
         self.permutations = {}
@@ -144,10 +195,9 @@ class Game:
         self.logger.debug("running start()")
 
         # Determine playercount
-        self.player_count = len(self.players)
         self.logger.info(f"number of players is {self.player_count}")
         if self.player_count == 0:
-            self.logger.warning('No players in current game. Failed to start game.')
+            self.logger.error('No players in current game. Failed to start game.')
             return False
 
         # create lookup dictionary of player ids
@@ -160,18 +210,13 @@ class Game:
         self.logger.info(f'Random player order in tables is {self.print_permutation}')
 
         # Determine (valid) amount of villager in the game
-        villager_count = self.player_count - sum(self.role_count.values())
-        self.logger.info(f'Number of villagers is {villager_count}')
-        if villager_count < 0:
-            self.logger.warning("Too many roles for number of players. Failed to start game.")
-            return False
-        self.role_count['villager'] = villager_count
+        assert self._valid_deck(self.deck)
 
         # Sets the list of roles
-        self.used_roles = [role for role, count in self.role_count.items() if count > 0]
+        self.used_roles = [role for role, count in self.deck.items() if count > 0]
         self.logger.info(f'Roles used in game are {self.used_roles}')
 
-        self.werewolf_count = self.role_count['werewolf']
+        self.werewolf_count = self.deck['werewolf']
         self.logger.info(f'Number of live werewolves is {self.werewolf_count}')
 
         # Generates the list of role permutations
@@ -214,7 +259,7 @@ class Game:
         self.logger.debug("running reset()")
         self.players = []
         self.player_count = 0
-        self.role_count = Game.default_roles.copy()
+        self.deck = Game.default_deck.copy()
         if self.started:
             self.stop()
         self.logger.info("Game reset.")
@@ -331,7 +376,7 @@ class Game:
         lover_count_list = [0] * self.player_count
         p_list = self.valid_permutations()
         if self.lovers_list:
-            if self.role_count['cupid'] > 0:
+            if self.deck['cupid'] > 0:
                 for p in p_list:
                     cupid_id = p.index('cupid')
                     lover1, lover2 = self.lovers_list[cupid_id]
@@ -518,7 +563,7 @@ class Game:
             permutation: List[str] -- permutation in which to check for lover.
             player_id: int -- index of player for which to check lover.
         """
-        if self.role_count['cupid'] == 0 or not self.lovers_list:
+        if self.deck['cupid'] == 0 or not self.lovers_list:
             return None
         lover_id = None
         cupid_id = permutation.index('cupid')
