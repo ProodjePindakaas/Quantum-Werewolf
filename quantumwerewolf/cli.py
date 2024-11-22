@@ -1,5 +1,5 @@
 import logging
-from os import system
+from os import system, get_terminal_size
 from quantumwerewolf.backend import Game
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,19 @@ class CliGame(Game):
         'cupid': '',
         }
 
-    bar_length = 36
     name_length = 12
+
+    def __init__(self):
+        super().__init__()
+        columns = get_terminal_size().columns
+        if columns < 69:
+            if columns < 45:
+                print(f"{self.boldred}WARNING: screen is too narrow for the game{self.normal}")
+                self.bar_length = 12
+            else:
+                self.bar_length = columns - 33
+        else:
+            self.bar_length = 36
 
     def ask_yesno(self, query, yes, no):
         self.logger.debug(f'running ask_yesno({query}, {yes}, {no})')
@@ -338,14 +349,18 @@ class CliGame(Game):
 
 def cli():
 
+    system('clear')
+
     g = CliGame()
+    g.get_players()
 
     system('clear')
-    g.get_players()
-    system('clear')
+
     g.print_players()
     g.get_deck()
+
     system('clear')
+
     g.start()
 
     # loop turns for every player
