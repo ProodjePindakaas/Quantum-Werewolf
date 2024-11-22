@@ -297,8 +297,8 @@ class CliGame(Game):
                 first_lover = self.ask_player(f'\n  {self.boldblue}[CUPID]{self.normal} Who do you choose as first lover?\n    ')
                 second_lover = self.ask_player(f'  {self.boldblue}[CUPID]{self.normal} Who do you choose as second lover?\n    ', invalid_players=[first_lover])
                 player_actions['cupid'] = (first_lover, second_lover)
-                print(f'    {first_lover} and {second_lover} are now lovers')
-            else:
+                print(f'  {self.boldblue}[CUPID]{self.normal} {first_lover} and {second_lover} are now lovers.')
+            elif self.turn_counter > 1:
                 # print lover probabilities
                 print(f'\n  {self.boldblue}[CUPID]{self.normal} Your lover is:')
                 for p in player_other_lover:
@@ -313,7 +313,7 @@ class CliGame(Game):
             target = self.ask_player(f'\n  {self.boldpink}[SEER]{self.normal} Whose role do you inspect?\n    ')
             target_role = self.seer(player, target, project=False)
             player_actions['seer'] = (target, target_role)
-            print(f'    {target} is {self.role_preposition[target_role]}{target_role}')
+            print(f'  {self.boldpink}[SEER]{self.normal} You see that {target} is {self.role_preposition[target_role]}{target_role}.')
 
         # werewolf
         if 'werewolf' in self.used_roles and player_role_probabilities['werewolf'] != 0:
