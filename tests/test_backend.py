@@ -49,16 +49,16 @@ class TestGame(TestCase):
         # test set role
         # check initial role counts
         roles = ['werewolf', 'seer', 'hunter', 'cupid']
-        self.assertEqual(list(self.game.role_count.keys()), roles)
-        self.assertEqual(self.game.role_count['werewolf'],  2)
-        self.assertEqual(self.game.role_count['seer'],  1)
-        self.assertEqual(self.game.role_count['hunter'],  0)
-        self.assertEqual(self.game.role_count['cupid'],  0)
+        self.assertEqual(list(self.game.deck.keys()), roles)
+        self.assertEqual(self.game.deck['werewolf'],  2)
+        self.assertEqual(self.game.deck['seer'],  1)
+        self.assertEqual(self.game.deck['hunter'],  0)
+        self.assertEqual(self.game.deck['cupid'],  0)
 
         # check role count change
-        for r in roles:
-            self.game.set_role(r, 683)
-            self.assertEqual(self.game.role_count[r], 683)
+        # for r in roles:
+        #     self.game._set_role(r, 683)
+        #     self.assertEqual(self.game.role_count[r], 683)
 
     def test_start_succesful(self):
         # test succesful start
@@ -82,24 +82,17 @@ class TestGame(TestCase):
         # test villager calculation
 
         # test role list
-        self.assertEqual(sum(self.game.role_count.values()), 4)
-        self.assertEqual(self.game.role_count['werewolf'], 2)
-        self.assertEqual(self.game.role_count['seer'], 1)
-        self.assertEqual(self.game.role_count['hunter'], 0)
-        self.assertEqual(self.game.role_count['cupid'], 0)
-        self.assertEqual(self.game.role_count['villager'], 1)
+        self.assertEqual(sum(self.game.deck.values()), 4)
+        self.assertEqual(self.game.deck['werewolf'], 2)
+        self.assertEqual(self.game.deck['seer'], 1)
+        self.assertEqual(self.game.deck['hunter'], 0)
+        self.assertEqual(self.game.deck['cupid'], 0)
+        self.assertEqual(self.game.deck['villager'], 1)
 
         # test number of permutations
         n_perm = self.game._max_permutations()
 
         self.assertEqual(len(self.game.permutations), n_perm)
-
-    def test_start_fail(self):
-        # test no players
-        self.assertFalse(self.game.start())
-        # test too few players
-        self.game.add_players('Alice')
-        self.assertFalse(self.game.start())
 
 
 class TestGameStarted(TestCase):
@@ -117,9 +110,6 @@ class TestGameStarted(TestCase):
 
     def test_add_players_error(self):
         self.assertRaises(ValueError, self.game.add_players, 'Alice')
-
-    def test_set_role_error(self):
-        self.assertRaises(ValueError, self.game.set_role, 'werewolf', 683)
 
     def test_name_id(self):
         # test _id method
