@@ -10,9 +10,9 @@ logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 class CliGame(Game):
 
     # Define colors
-    normal = '\033[0;0m'
-    bold = '\033[1m'
-    underline = '\033[4m'
+    normal = '\033[0;37m'
+    bold = '\033[1;37m'
+    underline = '\033[4;37m'
     red = '\033[0;31m'
     boldred = '\033[1;31m'
     pink = '\033[0;35m'
@@ -58,7 +58,7 @@ class CliGame(Game):
                 print(f"{self.boldred}WARNING: screen is too narrow for the game{self.normal}")
                 self.bar_length = 12
             else:
-                self.bar_length = columns - 33
+                self.bar_length = columns - 27
         else:
             self.bar_length = 36
 
@@ -136,6 +136,7 @@ class CliGame(Game):
     def print_probability_bars(self, game_over=False):
         probabilities = self.role_probabilities()
 
+        print(f'{self.normal}{self.bold}{'Name':>{self.name_length}}    {'Role Distribution':<{self.bar_length}}{'Dead chance':>12}{self.normal}')
         for i in self.print_permutation:
             p = probabilities[i]
             name = '???'
@@ -152,7 +153,7 @@ class CliGame(Game):
                 length = total_length_new - total_length
                 total_length = total_length_new
                 line += f"{self.role_style_bold[role]}{letter * length}"
-            line += f"{self.normal}{100*p['dead']:11.0f}% dead"
+            line += f"{self.normal}{100*p['dead']:5.0f}% dead"
             print(line)
 
     def print_kill(self, player, cause=''):
@@ -409,18 +410,23 @@ def cli():
         # day
         input('All player have had their turn (press ENTER to continue)')
         system('clear')
-        print('The day begins')
 
+        print('The day begins and the villagers awaken.\n')
         g.start_day()
 
         # check win before the vote
         if g.print_win():
             break
 
+        # show live players
+        g.print_live_players()
+
         # Show current game state
+        print('\n  These are the current roles of the players:')
         g.print_probability_bars()
 
         # vote
+        print('\n  All players that are still alive must now choose one player to lynch.')
         lynch_target = g.ask_player(f'\n  {g.boldyellow}[ALL VILLAGERS]{g.normal} Who do you lynch?\n    ')
 
         g.end_day(lynch_target)
