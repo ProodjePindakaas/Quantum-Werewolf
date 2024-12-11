@@ -136,7 +136,7 @@ class CliGame(Game):
     def print_probability_bars(self, game_over=False):
         probabilities = self.role_probabilities()
 
-        print(f'{self.normal}{self.bold}{'Name':>{self.name_length}}    {'Role Distribution':<{self.bar_length}}{'Dead chance':>12}{self.normal}')
+        print(f"{self.bold}{'Name':>{self.name_length}}    {'Role Distribution':<{self.bar_length}}{'Dead chance':>12}{self.normal}")
         for i in self.print_permutation:
             p = probabilities[i]
             name = '???'
