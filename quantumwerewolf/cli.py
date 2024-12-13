@@ -12,6 +12,7 @@ class CliGame(Game):
     # Define colors
     normal = '\033[0;37m'
     bold = '\033[1;37m'
+    italic = '\033[3:37m'
     underline = '\033[4;37m'
     red = '\033[0;31m'
     boldred = '\033[1;31m'
@@ -136,7 +137,10 @@ class CliGame(Game):
     def print_probability_bars(self, game_over=False):
         probabilities = self.role_probabilities()
 
-        print(f"{self.bold}{'Name':>{self.name_length}}    {'Role Distribution':<{self.bar_length}}{'Dead chance':>12}{self.normal}")
+        # print header
+        print(f"{self.bold}{'Name':>{self.name_length}}    {'Role Distribution':<{self.bar_length}}{'Deadness':>11}{self.normal}")
+
+        # print bars
         for i in self.print_permutation:
             p = probabilities[i]
             name = '???'
@@ -155,6 +159,12 @@ class CliGame(Game):
                 line += f"{self.role_style_bold[role]}{letter * length}"
             line += f"{self.normal}{100*p['dead']:5.0f}% dead"
             print(line)
+
+        # print legend
+        legend = ""
+        for role in self.used_roles:
+            legend += f"{self.role_style_bold[role]}{role.title()}, "
+        print(f'\n        {self.bold}Legend: {legend[:-2]}.{self.normal}')
 
     def print_kill(self, player, cause=''):
         player_role = self.kill(player)
@@ -228,6 +238,9 @@ class CliGame(Game):
         for i, p in enumerate(self.players):
             if p in live_players:
                 print(f"  {i+1:3d}: {p}")
+
+        if self.turn_counter == 1:
+            print(f'\n  {self.italic}Hint: you can also use player numbers instead of names{self.normal}')
 
     def print_deck(self, hide_unused=False):
         for (role, count) in self.deck.items():
