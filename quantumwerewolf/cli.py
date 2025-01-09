@@ -12,7 +12,7 @@ class CliGame(Game):
     # Define colors
     normal = '\033[0;37m'
     bold = '\033[1;37m'
-    italic = '\033[3:37m'
+    italic = '\033[3;37m'
     underline = '\033[4;37m'
     red = '\033[0;31m'
     boldred = '\033[1;31m'
