@@ -4,7 +4,7 @@ Quantum Werewolf is a game based on the party game "The Werewolves of Millers Ho
 
 ## Installation
 
-The game is published on PyPI and can be installed using `pip` as follows:
+The game is published on [PyPI](https://pypi.org/project/quantumwerewolf/) and can be installed using `pip` as follows:
 
 ```console
 $ pip install quantumwerewolf
