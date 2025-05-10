@@ -13,8 +13,8 @@ $ pip install quantumwerewolf
 ### Mobile (Termux)
 
 To play the game on a mobile phone, one option is to play using the Termux app.
-You can install termux via [Github](https://github.com/termux/termux-app/releases), [F-Droid](https://f-droid.org/en/packages/com.termux/) or [Google Play](https://play.google.com/store/apps/details?id=com.termux).
-Start termux and install python and quantumwerewolf with the following commands:
+You can install Termux via [Github](https://github.com/termux/termux-app/releases), [F-Droid](https://f-droid.org/en/packages/com.termux/) or [Google Play](https://play.google.com/store/apps/details?id=com.termux).
+Start Termux and install `python` and `quantumwerewolf` with the following commands:
 
 ```console
 $ pkg install python
@@ -23,7 +23,8 @@ $ pip install quantumwerewolf
 
 ### Updating
 
-Quantum Werewolf is still being developed to update to a newer version run:
+Quantum Werewolf is still being developed.
+To update to a newer version run:
 
 ```console
 $ pip install --upgrade quantumwerewolf
