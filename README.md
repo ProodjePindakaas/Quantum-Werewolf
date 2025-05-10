@@ -6,15 +6,17 @@ Quantum Werewolf is a game based on the party game "The Werewolves of Millers Ho
 
 The game is published on PyPI and can be installed using `pip` as follows:
 
-`$ pip install quantumwerewolf`
+```console
+$ pip install quantumwerewolf
+```
 
 ### Mobile (Termux)
 
 To play the game on a mobile phone, one option is to play using the Termux app.
-You can install termux via [Github](https://github.com/termux/termux-app#github), [F-Droid](https://f-droid.org/en/packages/com.termux/) or [Google Play](https://play.google.com/store/apps/details?id=com.termux).
+You can install termux via [Github](https://github.com/termux/termux-app/releases), [F-Droid](https://f-droid.org/en/packages/com.termux/) or [Google Play](https://play.google.com/store/apps/details?id=com.termux).
 Start termux and install python and quantumwerewolf with the following commands:
 
-```shell
+```console
 $ pkg install python
 $ pip install quantumwerewolf
 ```
@@ -23,11 +25,17 @@ $ pip install quantumwerewolf
 
 Quantum Werewolf is still being developed to update to a newer version run:
 
-`$ pip install --upgrade quantumwerewolf`
+```console
+$ pip install --upgrade quantumwerewolf
+```
 
 ## Usage
 
-Start the game in a terminal by running the `quantumwerewolf` command in a terminal.
+Start the game in a terminal by running the `quantumwerewolf` command in a terminal:
+
+```console
+$ quantumwerewolf
+```
 
 ## About
 
